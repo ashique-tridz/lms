@@ -230,6 +230,16 @@ const routes = [
 		component: () => import('@/pages/Search/Search.vue'),
 	},
 	{
+		path: '/book-session',
+		name: 'BookSession',
+		component: () => import('@/pages/BookSession.vue'),
+	},
+	{
+		path: '/bookings',
+		name: 'StudentBookings',
+		component: () => import('@/pages/StudentBookings.vue'),
+	},
+	{
 		path: '/data-import',
 		name: 'DataImportList',
 		component: () => import('@/pages/DataImport.vue'),

@@ -470,6 +470,24 @@ const getSidebarItems = (forMobile = false) => {
 					],
 				},
 				{
+					label: 'Book Session',
+					icon: 'Calendar',
+					to: 'BookSession',
+					activeFor: ['BookSession'],
+					condition: () => {
+						return userResource?.data
+					},
+				},
+				{
+					label: 'My Bookings',
+					icon: 'Video',
+					to: 'StudentBookings',
+					activeFor: ['StudentBookings'],
+					condition: () => {
+						return userResource?.data
+					},
+				},
+				{
 					label: 'Programs',
 					icon: 'Route',
 					to: 'Programs',
