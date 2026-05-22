@@ -56,6 +56,17 @@
 								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
 							/>
 						</div>
+						<div>
+							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Hourly Rate (INR)') }}</label>
+							<input
+								v-model.number="form.hourly_rate"
+								type="number"
+								min="1"
+								required
+								placeholder="e.g. 500"
+								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+							/>
+						</div>
 					</div>
 
 					<div>
@@ -234,6 +245,7 @@ const form = reactive({
 	tutor_name: '',
 	bio: '',
 	years_of_experiance: 1,
+	hourly_rate: 500,
 	timezone: 'Asia/Kolkata',
 })
 
@@ -264,7 +276,7 @@ async function fetchProfile() {
 			const tutorRes = await call('frappe.client.get_list', {
 				doctype: 'Tutor Profile',
 				filters: { user: user.data.name },
-				fields: ['name', 'tutor_name', 'bio', 'years_of_experiance', 'timezone'],
+				fields: ['name', 'tutor_name', 'bio', 'years_of_experiance', 'hourly_rate', 'timezone'],
 			})
 			if (tutorRes && tutorRes.length) {
 				const profile = tutorRes[0]
@@ -273,6 +285,7 @@ async function fetchProfile() {
 					tutor_name: profile.tutor_name,
 					bio: profile.bio || '',
 					years_of_experiance: profile.years_of_experiance,
+					hourly_rate: profile.hourly_rate || 500,
 					timezone: profile.timezone || 'Asia/Kolkata',
 				})
 				const doc = await call('frappe.client.get', {
@@ -330,6 +343,7 @@ async function saveProfile() {
 			tutor_name: form.tutor_name,
 			bio: form.bio,
 			years_of_experiance: form.years_of_experiance,
+			hourly_rate: form.hourly_rate,
 			timezone: form.timezone,
 			subjects: JSON.stringify(selectedSubjects.value),
 			boards: JSON.stringify(selectedBoards.value),

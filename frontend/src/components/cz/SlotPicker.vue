@@ -66,7 +66,7 @@ const groupedSlots = computed(() => {
 	if (!props.slots || !dayjs) return {}
 	const groups = {}
 	props.slots.forEach((slot) => {
-		const localDate = dayjs.utc(slot.start_datetime).local().format('YYYY-MM-DD')
+		const localDate = dayjs(slot.start_datetime).format('YYYY-MM-DD')
 		if (!groups[localDate]) {
 			groups[localDate] = []
 		}
@@ -111,8 +111,8 @@ function formatDateFriendly(dateStr) {
 	return dayjs(dateStr).format('dddd, MMMM D, YYYY')
 }
 
-function formatTime(utcTime) {
+function formatTime(localTime) {
 	if (!dayjs) return ''
-	return dayjs.utc(utcTime).local().format('hh:mm A')
+	return dayjs(localTime).format('hh:mm A')
 }
 </script>

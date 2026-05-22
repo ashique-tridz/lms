@@ -37,6 +37,10 @@ export const useBookingStore = defineStore('booking-store', () => {
 		url: 'smart_learning.api.booking_api.report_payment_failure',
 	})
 
+	const paymentConfirmer = createResource({
+		url: 'smart_learning.api.booking_api.confirm_payment',
+	})
+
 	function initiateBooking(params) {
 		loading.value = true
 		error.value = null
@@ -57,6 +61,22 @@ export const useBookingStore = defineStore('booking-store', () => {
 		})
 	}
 
+	function confirmPayment(paymentRes) {
+		loading.value = true
+		error.value = null
+		return paymentConfirmer.submit({
+			razorpay_payment_id: paymentRes.razorpay_payment_id,
+			razorpay_order_id: paymentRes.razorpay_order_id,
+			razorpay_signature: paymentRes.razorpay_signature,
+		}).then((res) => {
+			loading.value = false
+			return res
+		}).catch((err) => {
+			loading.value = false
+			throw err
+		})
+	}
+
 	return {
 		currentBooking,
 		checkoutDetails,
@@ -65,5 +85,6 @@ export const useBookingStore = defineStore('booking-store', () => {
 		initiateBooking,
 		getCheckout,
 		reportFailure,
+		confirmPayment,
 	}
 })

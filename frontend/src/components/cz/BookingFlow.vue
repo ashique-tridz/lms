@@ -12,7 +12,7 @@
 			</div>
 			<div class="text-left sm:text-right">
 				<span class="text-[10px] uppercase tracking-wider text-gray-400 block">{{ __('Hourly Rate') }}</span>
-				<span class="text-lg font-bold text-gray-950">{{ tutor.hourly_rate }} INR</span>
+				<span class="text-lg font-bold text-gray-950">{{ tutor.hourly_rate || 500 }} INR</span>
 			</div>
 		</div>
 
@@ -24,7 +24,6 @@
 					v-model="filters.subject"
 					class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-white text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
-					<option value="">{{ __('All Subjects') }}</option>
 					<option v-for="sub in tutor.subjects" :key="sub.name" :value="sub.subject">
 						{{ sub.subject }}
 					</option>
@@ -37,7 +36,6 @@
 					v-model="filters.board"
 					class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-white text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
-					<option value="">{{ __('All Boards') }}</option>
 					<option v-for="brd in tutor.boards" :key="brd.name" :value="brd.board">
 						{{ brd.board }}
 					</option>
@@ -50,7 +48,6 @@
 					v-model="filters.class_name"
 					class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-white text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
-					<option value="">{{ __('All Classes') }}</option>
 					<option v-for="cls in tutor.classes" :key="cls.name" :value="cls.class">
 						{{ cls.class }}
 					</option>
@@ -83,7 +80,7 @@
 				</p>
 				<p class="text-xs text-blue-800">
 					<span class="font-semibold text-blue-600 mr-1 uppercase">{{ __('Price') }}:</span>
-					{{ tutor.hourly_rate }} INR
+					{{ tutor.hourly_rate || 500 }} INR
 				</p>
 			</div>
 
@@ -129,9 +126,9 @@ const tutorStore = useTutorStore()
 const bookingStore = useBookingStore()
 
 const filters = reactive({
-	subject: '',
-	board: '',
-	class_name: '',
+	subject: props.tutor.subjects?.[0]?.subject || '',
+	board: props.tutor.boards?.[0]?.board || '',
+	class_name: props.tutor.classes?.[0]?.class || '',
 })
 
 const selectedSlot = ref(null)
@@ -142,7 +139,17 @@ const slotsList = tutorStore.slotsList
 const slots = computed(() => slotsList.data?.success ? slotsList.data.data : [])
 
 watch(
-	[filters, () => props.tutor.name],
+	() => props.tutor.name,
+	() => {
+		filters.subject = props.tutor.subjects?.[0]?.subject || ''
+		filters.board = props.tutor.boards?.[0]?.board || ''
+		filters.class_name = props.tutor.classes?.[0]?.class || ''
+	},
+	{ immediate: true }
+)
+
+watch(
+	filters,
 	() => {
 		selectedSlot.value = null
 		tutorStore.filters.tutor = props.tutor.name
@@ -159,8 +166,8 @@ function onSelectSlot(slot) {
 
 function formatSlotTime(start, end) {
 	if (!start || !end || !dayjs) return ''
-	const s = dayjs.utc(start).local()
-	const e = dayjs.utc(end).local()
+	const s = dayjs(start)
+	const e = dayjs(end)
 	return `${s.format('dddd, DD MMM YYYY, hh:mm A')} - ${e.format('hh:mm A')}`
 }
 
@@ -171,7 +178,7 @@ async function startBooking() {
 		const res = await bookingStore.initiateBooking({
 			slot: selectedSlot.value.name,
 			tutor: props.tutor.name,
-			amount: props.tutor.hourly_rate,
+			amount: props.tutor.hourly_rate || 500,
 			currency: 'INR',
 			subject: selectedSlot.value.subject || undefined,
 			board: selectedSlot.value.board || undefined,
@@ -186,8 +193,13 @@ async function startBooking() {
 	}
 }
 
-function onPaymentSuccess(paymentRes) {
+async function onPaymentSuccess(paymentRes) {
 	checkoutDetails.value = null
+	try {
+		await bookingStore.confirmPayment(paymentRes)
+	} catch (e) {
+		console.error("Failed to confirm payment on backend:", e)
+	}
 	router.push({ name: 'Sessions' })
 }
 
