@@ -2531,3 +2531,17 @@ def sanitize_json(node):
 	if isinstance(node, str) and ("<" in node or ">" in node):
 		return sanitize_html(node, always_sanitize=True)
 	return node
+
+
+def has_tutor_role(member: str = None):
+	return frappe.db.get_value(
+		"Has Role",
+		{"parent": member or frappe.session.user, "role": "Tutor"},
+		"name",
+	)
+
+
+def get_tutor_for_user(user: str = None):
+	user = user or frappe.session.user
+	return frappe.db.get_value("Tutor Profile", {"user": user}, "name")
+

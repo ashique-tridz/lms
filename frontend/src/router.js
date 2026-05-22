@@ -246,6 +246,56 @@ const routes = [
 		component: () => import('@/pages/DataImport.vue'),
 		props: true,
 	},
+	{
+		path: '/sessions',
+		name: 'Sessions',
+		component: () => import('@/pages/cz/Sessions.vue')
+	},
+	{
+		path: '/sessions/book',
+		name: 'BookSession',
+		component: () => import('@/pages/cz/BookSession.vue')
+	},
+	{
+		path: '/sessions/history',
+		name: 'SessionHistory',
+		component: () => import('@/pages/cz/SessionHistory.vue')
+	},
+	{
+		path: '/tutors',
+		name: 'TutorSearch',
+		component: () => import('@/pages/cz/TutorSearch.vue')
+	},
+	{
+		path: '/revision',
+		name: 'Revision',
+		component: () => import('@/pages/cz/Revision.vue')
+	},
+	{
+		path: '/tutor/dashboard',
+		name: 'TutorDashboard',
+		component: () => import('@/pages/cz/TutorDashboard.vue')
+	},
+	{
+		path: '/tutor/availability',
+		name: 'AvailabilityRules',
+		component: () => import('@/pages/cz/AvailabilityRules.vue')
+	},
+	{
+		path: '/tutor/slots',
+		name: 'SlotCalendar',
+		component: () => import('@/pages/cz/SlotCalendar.vue')
+	},
+	{
+		path: '/tutor/sessions',
+		name: 'TutorSessions',
+		component: () => import('@/pages/cz/TutorSessions.vue')
+	},
+	{
+		path: '/tutor/profile',
+		name: 'TutorProfile',
+		component: () => import('@/pages/cz/TutorProfile.vue')
+	},
 ]
 
 let router = createRouter({
