@@ -1,39 +1,59 @@
 <template>
-	<div class="space-y-6">
-		<h4 class="text-base font-semibold text-gray-900">
+	<div class="space-y-5">
+		<h4 class="text-sm font-semibold text-ink-gray-7">
 			{{ __('Select a Slot') }}
 		</h4>
 
 		<!-- Date Tabs -->
-		<div v-if="groupedSlots && Object.keys(groupedSlots).length" class="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+		<div v-if="dates.length" class="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
 			<button
 				v-for="date in dates"
 				:key="date"
 				@click="selectedDate = date"
-				class="flex flex-col items-center px-4 py-2 border transition-all duration-150 min-w-[80px] rounded-lg focus:outline-none"
-				:class="selectedDate === date ? 'bg-blue-600 border-blue-600 text-white font-medium shadow-sm' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'"
+				class="flex flex-col items-center px-4 py-2 border rounded-lg focus:outline-none min-w-[72px] transition-all duration-150 shrink-0"
+				:class="
+					selectedDate === date
+						? 'bg-ink-gray-9 border-ink-gray-9 text-surface-white shadow-sm'
+						: 'bg-surface-white border-outline-gray-2 text-ink-gray-7 hover:bg-surface-gray-2'
+				"
 			>
-				<span class="text-[10px] uppercase tracking-wider font-semibold" :class="selectedDate === date ? 'text-blue-100' : 'text-gray-400'">{{ formatDayOfWeek(date) }}</span>
-				<span class="text-lg font-bold mt-0.5">{{ formatDayOfMonth(date) }}</span>
-				<span class="text-[9px] uppercase tracking-wider font-semibold mt-0.5" :class="selectedDate === date ? 'text-blue-200' : 'text-gray-400'">{{ formatMonth(date) }}</span>
+				<span class="text-[10px] uppercase tracking-wider font-semibold opacity-70">
+					{{ formatDayOfWeek(date) }}
+				</span>
+				<span class="text-lg font-bold mt-0.5 leading-tight">
+					{{ formatDayOfMonth(date) }}
+				</span>
+				<span class="text-[9px] uppercase tracking-wider font-semibold opacity-70 mt-0.5">
+					{{ formatMonth(date) }}
+				</span>
 			</button>
 		</div>
-		<div v-else class="text-sm text-gray-500 py-8 text-center bg-gray-50 border border-dashed border-gray-200 rounded-lg">
+
+		<!-- No slots empty state -->
+		<div
+			v-else
+			class="text-sm text-ink-gray-5 py-10 text-center border border-dashed border-outline-gray-2 rounded-xl bg-surface-gray-1"
+		>
 			{{ __('No slots available for the selected filters.') }}
 		</div>
 
-		<!-- Time Slots Grid -->
+		<!-- Time grid for selected date -->
 		<div v-if="selectedDate && groupedSlots[selectedDate]" class="space-y-3">
-			<h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+			<h5 class="text-xs font-semibold text-ink-gray-5 uppercase tracking-wider">
 				{{ __('Available Times on') }} {{ formatDateFriendly(selectedDate) }}
+				<span class="normal-case font-normal text-ink-gray-4">({{ displayTimezone }})</span>
 			</h5>
-			<div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+			<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
 				<button
 					v-for="slot in groupedSlots[selectedDate]"
 					:key="slot.name"
 					@click="$emit('selectSlot', slot)"
 					class="py-2.5 px-3 border text-xs font-medium transition-all text-center rounded-lg focus:outline-none"
-					:class="selectedSlotName === slot.name ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'"
+					:class="
+						selectedSlotName === slot.name
+							? 'bg-ink-gray-9 border-ink-gray-9 text-surface-white shadow-sm'
+							: 'bg-surface-white border-outline-gray-2 text-ink-gray-7 hover:bg-surface-gray-2'
+					"
 				>
 					{{ formatTime(slot.start_datetime) }}
 				</button>
@@ -54,6 +74,14 @@ const props = defineProps({
 		type: String,
 		default: '',
 	},
+	/**
+	 * System timezone string (e.g. "Asia/Kolkata").
+	 * Slot datetimes from backend are stored in UTC — we convert to this timezone for display.
+	 */
+	systemTimezone: {
+		type: String,
+		default: '',
+	},
 })
 
 defineEmits(['selectSlot'])
@@ -61,23 +89,35 @@ defineEmits(['selectSlot'])
 const dayjs = inject('$dayjs')
 const selectedDate = ref('')
 
-// Group slots by local date string (YYYY-MM-DD)
+/**
+ * Convert a UTC datetime string to the system timezone using dayjs.
+ * Falls back to browser local time if dayjs-timezone plugin is not available.
+ */
+function toSystemTz(utcStr) {
+	if (!dayjs) return null
+	if (props.systemTimezone && dayjs.utc && dayjs.tz) {
+		return dayjs.utc(utcStr).tz(props.systemTimezone)
+	}
+	return dayjs(utcStr)
+}
+
+const displayTimezone = computed(() => props.systemTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone)
+
+// Group slots by date in the system timezone
 const groupedSlots = computed(() => {
 	if (!props.slots || !dayjs) return {}
 	const groups = {}
 	props.slots.forEach((slot) => {
-		const localDate = dayjs(slot.start_datetime).format('YYYY-MM-DD')
-		if (!groups[localDate]) {
-			groups[localDate] = []
-		}
+		const d = toSystemTz(slot.start_datetime)
+		if (!d) return
+		const localDate = d.format('YYYY-MM-DD')
+		if (!groups[localDate]) groups[localDate] = []
 		groups[localDate].push(slot)
 	})
 	return groups
 })
 
-const dates = computed(() => {
-	return Object.keys(groupedSlots.value).sort()
-})
+const dates = computed(() => Object.keys(groupedSlots.value).sort())
 
 watch(
 	dates,
@@ -92,27 +132,19 @@ watch(
 )
 
 function formatDayOfWeek(dateStr) {
-	if (!dayjs) return ''
-	return dayjs(dateStr).format('ddd')
+	return dayjs ? toSystemTz(dateStr + 'T00:00:00').format('ddd') : ''
 }
-
 function formatDayOfMonth(dateStr) {
-	if (!dayjs) return ''
-	return dayjs(dateStr).format('D')
+	return dayjs ? toSystemTz(dateStr + 'T00:00:00').format('D') : ''
 }
-
 function formatMonth(dateStr) {
-	if (!dayjs) return ''
-	return dayjs(dateStr).format('MMM')
+	return dayjs ? toSystemTz(dateStr + 'T00:00:00').format('MMM') : ''
 }
-
 function formatDateFriendly(dateStr) {
-	if (!dayjs) return ''
-	return dayjs(dateStr).format('dddd, MMMM D, YYYY')
+	return dayjs ? toSystemTz(dateStr + 'T00:00:00').format('dddd, MMMM D, YYYY') : ''
 }
-
-function formatTime(localTime) {
+function formatTime(utcStr) {
 	if (!dayjs) return ''
-	return dayjs(localTime).format('hh:mm A')
+	return toSystemTz(utcStr).format('hh:mm A')
 }
 </script>
