@@ -11,16 +11,10 @@ export const filterState = reactive({
 })
 
 // System settings: currency + timezone
-// frappe.client.get_value returns { message: { currency, time_zone } }
 export const systemSettings = createResource({
-	url: 'frappe.client.get_value',
-	params: {
-		doctype: 'System Settings',
-		fieldname: ['currency', 'time_zone'],
-	},
+	url: 'smart_learning.api.student_api.get_system_settings',
 	auto: true,
 	transform(data) {
-		// createResource strips the outer {message} wrapper; data is already the inner object
 		return {
 			currency: data?.currency || 'INR',
 			timezone: data?.time_zone || 'UTC',
