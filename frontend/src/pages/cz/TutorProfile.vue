@@ -1,149 +1,268 @@
 <template>
 	<div class="min-h-screen bg-surface-gray-1">
-		<header
-			class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5">
+		<header class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5">
 			<Breadcrumbs class="h-7" :items="[{ label: __('Tutor Profile'), route: { name: 'TutorProfile' } }]" />
 		</header>
 
 		<div class="max-w-3xl mx-auto p-5 sm:p-8">
-			<div v-if="loading" class="flex justify-center py-20">
+			<!-- Loading State -->
+			<div v-if="dashboardStore.dashboardData.loading || loadingOptions" class="flex justify-center py-20">
 				<LoadingIndicator class="w-10 h-10 text-gray-400" />
 			</div>
 
-			<div v-else class="bg-surface-cards border border-outline-gray-2 rounded-xl p-6 space-y-6 shadow-sm">
-				<div>
-					<h2 class="text-lg font-semibold text-ink-gray-9">{{ __('Tutor Profile Details') }}</h2>
-					<p class="text-sm text-ink-gray-5 mt-1">{{ __('Manage your tutoring profile details visible to students.') }}</p>
+			<!-- Empty State: No Profile and Not Creating -->
+			<div v-else-if="!profile && !isCreating" class="text-center py-20 bg-white border border-gray-200 rounded-xl shadow-sm space-y-4">
+				<div class="flex flex-col items-center justify-center space-y-2">
+					<div class="p-3 bg-gray-50 rounded-full">
+						<User class="w-8 h-8 text-gray-400 stroke-1.5" />
+					</div>
+					<h3 class="text-lg font-medium text-gray-900">{{ __('No Tutor Profile linked to your account') }}</h3>
+					<p class="text-sm text-gray-500 max-w-sm">
+						{{ __('Create a tutor profile to start configuring availability rules and taking bookings.') }}
+					</p>
+				</div>
+				<Button
+					@click="isCreating = true"
+					variant="solid"
+					class="font-semibold text-xs mt-2"
+				>
+					{{ __('Create Tutor Profile') }}
+				</Button>
+			</div>
+
+			<!-- Profile Edit/View Form -->
+			<div v-else class="bg-white border border-gray-200 rounded-xl p-6 space-y-6 shadow-sm">
+				<!-- Header Notice if Profile is Verified -->
+				<div class="flex justify-between items-start">
+					<div>
+						<h2 class="text-lg font-bold text-gray-900">{{ __('Tutor Profile Details') }}</h2>
+						<p class="text-sm text-gray-500 mt-1">{{ __('Manage your tutoring profile details visible to students.') }}</p>
+					</div>
+					<Badge
+						v-if="profile"
+						:label="profile.verification_status"
+						:theme="profile.verification_status === 'Verified' ? 'green' : 'gray'"
+						size="sm"
+					/>
+				</div>
+
+				<!-- Lock Notice -->
+				<div
+					v-if="profile && profile.verification_status === 'Verified'"
+					class="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-start gap-2.5"
+				>
+					<Lock class="w-4 h-4 mt-0.5 shrink-0" />
+					<div>
+						<span class="font-semibold">{{ __('Profile verified') }}</span>. 
+						{{ __('Contact administrator to modify profile.') }}
+					</div>
 				</div>
 
 				<form @submit.prevent="saveProfile" class="space-y-5">
 					<!-- Basic Info -->
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
-							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Display Name') }}</label>
-							<input v-model="form.tutor_name" :disabled="isEdit" type="text" required
+							<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{{ __('Display Name') }}</label>
+							<input
+								v-model="form.tutor_name"
+								:disabled="isReadOnly"
+								type="text"
+								required
 								placeholder="e.g. Dr. John Doe"
-								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed" />
+								class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+							/>
 						</div>
 						<div>
-							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Timezone') }}</label>
-							<input v-model="form.timezone" type="text" required placeholder="Asia/Kolkata"
-								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+							<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{{ __('Timezone') }}</label>
+							<select
+								v-model="form.timezone"
+								:disabled="isReadOnly"
+								required
+								class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+							>
+								<option v-for="tz in timezoneOptions" :key="tz" :value="tz">{{ tz }}</option>
+							</select>
 						</div>
 					</div>
 
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
-							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Years of Experience') }}</label>
-							<input v-model.number="form.years_of_experience" type="number" min="0" required
+							<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{{ __('Years of Experience') }}</label>
+							<input
+								v-model.number="form.years_of_experience"
+								:disabled="isReadOnly"
+								type="number"
+								min="0"
+								required
 								placeholder="e.g. 5"
-								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+								class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+							/>
 						</div>
 						<div>
-							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Hourly Rate (INR)') }}</label>
-							<input v-model.number="form.hourly_rate" type="number" min="1" required
+							<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{{ __('Hourly Rate (INR)') }}</label>
+							<input
+								v-model.number="form.hourly_rate"
+								:disabled="isReadOnly"
+								type="number"
+								min="1"
+								required
 								placeholder="e.g. 500"
-								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+								class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+							/>
 						</div>
 					</div>
 
 					<div>
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Biography') }}</label>
-						<textarea v-model="form.bio" rows="4"
+						<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{{ __('Biography') }}</label>
+						<textarea
+							v-model="form.bio"
+							:disabled="isReadOnly"
+							rows="4"
 							placeholder="Write a short summary about your background, credentials and tutoring approach..."
-							class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none" />
+							class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+						/>
 					</div>
 
 					<!-- Subjects -->
 					<div>
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Subjects Taught') }}</label>
-						<div
-							class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-1 p-4 rounded-lg border border-outline-gray-2">
-							<label v-for="sub in allSubjects" :key="sub"
-								class="flex items-center gap-2 text-sm text-ink-gray-8 cursor-pointer select-none">
-								<input type="checkbox" :value="sub" v-model="selectedSubjects"
-									class="rounded border-outline-gray-2 text-blue-600 focus:ring-blue-500" />
+						<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ __('Subjects Taught') }}</label>
+						<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+							<label
+								v-for="sub in allSubjects"
+								:key="sub"
+								class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none"
+							>
+								<input
+									type="checkbox"
+									:value="sub"
+									v-model="selectedSubjects"
+									:disabled="isReadOnly"
+									class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+								/>
 								{{ sub }}
 							</label>
-							<p v-if="!allSubjects.length" class="text-xs text-ink-gray-4 col-span-full">{{ __('No subjects found.') }}</p>
+							<p v-if="!allSubjects.length" class="text-xs text-gray-400 col-span-full">{{ __('No subjects found.') }}</p>
 						</div>
 					</div>
 
 					<!-- Boards -->
 					<div>
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Boards Supported') }}</label>
-						<div
-							class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-1 p-4 rounded-lg border border-outline-gray-2">
-							<label v-for="brd in allBoards" :key="brd"
-								class="flex items-center gap-2 text-sm text-ink-gray-8 cursor-pointer select-none">
-								<input type="checkbox" :value="brd" v-model="selectedBoards"
-									class="rounded border-outline-gray-2 text-blue-600 focus:ring-blue-500" />
+						<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ __('Boards Supported') }}</label>
+						<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+							<label
+								v-for="brd in allBoards"
+								:key="brd"
+								class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none"
+							>
+								<input
+									type="checkbox"
+									:value="brd"
+									v-model="selectedBoards"
+									:disabled="isReadOnly"
+									class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+								/>
 								{{ brd }}
 							</label>
-							<p v-if="!allBoards.length" class="text-xs text-ink-gray-4 col-span-full">{{ __('No boards found.') }}</p>
+							<p v-if="!allBoards.length" class="text-xs text-gray-400 col-span-full">{{ __('No boards found.') }}</p>
 						</div>
 					</div>
 
 					<!-- Classes -->
 					<div>
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Classes Target') }}</label>
-						<div
-							class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-1 p-4 rounded-lg border border-outline-gray-2">
-							<label v-for="cls in allClasses" :key="cls"
-								class="flex items-center gap-2 text-sm text-ink-gray-8 cursor-pointer select-none">
-								<input type="checkbox" :value="cls" v-model="selectedClasses"
-									class="rounded border-outline-gray-2 text-blue-600 focus:ring-blue-500" />
+						<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ __('Classes Target') }}</label>
+						<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+							<label
+								v-for="cls in allClasses"
+								:key="cls"
+								class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none"
+							>
+								<input
+									type="checkbox"
+									:value="cls"
+									v-model="selectedClasses"
+									:disabled="isReadOnly"
+									class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+								/>
 								{{ cls }}
 							</label>
-							<p v-if="!allClasses.length" class="text-xs text-ink-gray-4 col-span-full">{{ __('No classes found.') }}</p>
+							<p v-if="!allClasses.length" class="text-xs text-gray-400 col-span-full">{{ __('No classes found.') }}</p>
 						</div>
 					</div>
 
 					<!-- Qualifications -->
-					<div class="space-y-3 pt-2 border-t border-outline-gray-1">
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mt-2">{{ __('Qualifications') }}</label>
+					<div class="space-y-3 pt-2 border-t border-gray-200">
+						<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2">{{ __('Qualifications') }}</label>
 
 						<div v-if="qualifications.length" class="space-y-2">
-							<div v-for="(q, idx) in qualifications" :key="idx"
-								class="flex items-center justify-between bg-surface-gray-1 border border-outline-gray-2 rounded-lg px-4 py-3 text-sm text-ink-gray-8">
+							<div
+								v-for="(q, idx) in qualifications"
+								:key="idx"
+								class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700"
+							>
 								<div class="flex gap-3 items-center">
-									<span class="font-semibold">{{ q.degree }}</span>
-									<span class="text-ink-gray-4">·</span>
+									<span class="font-semibold text-gray-900">{{ q.degree }}</span>
+									<span class="text-gray-400">·</span>
 									<span>{{ q.institution }}</span>
-									<span class="text-ink-gray-4">·</span>
-									<span class="font-medium text-ink-gray-6">{{ q.year }}</span>
+									<span class="text-gray-400">·</span>
+									<span class="font-medium text-gray-500">{{ q.year }}</span>
 								</div>
-								<button type="button" @click="removeQualification(idx)"
-									class="text-xs font-semibold text-red-500 hover:text-red-600 hover:underline ml-4 shrink-0">
+								<button
+									v-if="!isReadOnly"
+									type="button"
+									@click="removeQualification(idx)"
+									class="text-xs font-semibold text-red-500 hover:text-red-600 hover:underline ml-4 shrink-0"
+								>
 									{{ __('Remove') }}
 								</button>
 							</div>
 						</div>
-						<div v-else
-							class="text-sm text-ink-gray-4 bg-surface-gray-1 border border-dashed border-outline-gray-2 rounded-lg p-4 text-center">
+						<div
+							v-else
+							class="text-sm text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-4 text-center"
+						>
 							{{ __('No qualifications added yet. At least one is required.') }}
 						</div>
 
 						<!-- Add row -->
-						<div class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
-							<input v-model="newQual.degree" type="text" placeholder="Degree"
-								class="text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500" />
-							<input v-model="newQual.institution" type="text" placeholder="Institution"
-								class="text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500" />
-							<input v-model.number="newQual.year" type="number" placeholder="Year"
-								class="text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500" />
-							<Button type="button" variant="outline" @click="addQualification"
-								class="rounded-lg text-xs font-semibold">
+						<div v-if="!isReadOnly" class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
+							<input
+								v-model="newQual.degree"
+								type="text"
+								placeholder="Degree"
+								class="text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500"
+							/>
+							<input
+								v-model="newQual.institution"
+								type="text"
+								placeholder="Institution"
+								class="text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500"
+							/>
+							<input
+								v-model.number="newQual.year"
+								type="number"
+								placeholder="Year"
+								class="text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500"
+							/>
+							<Button
+								type="button"
+								variant="outline"
+								@click="addQualification"
+								class="rounded-lg text-xs font-semibold"
+							>
 								{{ __('Add') }}
 							</Button>
 						</div>
 					</div>
 
 					<!-- Submit -->
-					<div class="flex justify-end pt-4 border-t border-outline-gray-1">
-						<Button :loading="saving" variant="solid" type="submit"
-							class="rounded-lg text-xs font-semibold px-5">
-							{{ isEdit ? __('Update Profile') : __('Create Profile') }}
+					<div v-if="!isReadOnly" class="flex justify-end pt-4 border-t border-gray-200">
+						<Button
+							:loading="saving"
+							variant="solid"
+							type="submit"
+							class="rounded-lg text-xs font-semibold px-5"
+						>
+							{{ profile ? __('Update Profile') : __('Create Profile') }}
 						</Button>
 					</div>
 				</form>
@@ -153,14 +272,17 @@
 </template>
 
 <script setup>
-import { inject, onMounted, reactive, ref } from 'vue'
-import { Breadcrumbs, LoadingIndicator, Button, call, toast } from 'frappe-ui'
+import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
+import { Breadcrumbs, LoadingIndicator, Button, Badge, call, toast } from 'frappe-ui'
+import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
+import { getTimezones } from '@/utils'
+import { User, Lock } from 'lucide-vue-next'
 
-const user = inject('$user')
+const dashboardStore = useTutorDashboardStore()
 
-const loading = ref(true)
+const loadingOptions = ref(true)
 const saving = ref(false)
-const isEdit = ref(false)
+const isCreating = ref(false)
 
 const allSubjects = ref([])
 const allBoards = ref([])
@@ -172,6 +294,7 @@ const selectedClasses = ref([])
 
 const qualifications = ref([])
 const newQual = reactive({ degree: '', institution: '', year: '' })
+const timezoneOptions = getTimezones()
 
 const form = reactive({
 	tutor_name: '',
@@ -181,12 +304,46 @@ const form = reactive({
 	timezone: 'Asia/Kolkata',
 })
 
-onMounted(async () => {
-	await loadFormOptions()
-	await fetchProfile()
+const profile = computed(() => dashboardStore.dashboardData.data?.profile)
+
+const isReadOnly = computed(() => {
+	return profile.value?.verification_status === 'Verified'
 })
 
+onMounted(async () => {
+	await loadFormOptions()
+	await dashboardStore.dashboardData.submit()
+	syncForm()
+})
+
+watch(profile, () => {
+	syncForm()
+})
+
+function syncForm() {
+	if (profile.value) {
+		Object.assign(form, {
+			tutor_name: profile.value.tutor_name,
+			bio: profile.value.bio || '',
+			years_of_experience: profile.value.years_of_experience,
+			hourly_rate: profile.value.hourly_rate || 500,
+			timezone: profile.value.timezone || 'Asia/Kolkata',
+		})
+		selectedSubjects.value = profile.value.subjects ? profile.value.subjects.map((s) => s.subject) : []
+		selectedBoards.value = profile.value.boards ? profile.value.boards.map((b) => b.board) : []
+		selectedClasses.value = profile.value.classes ? profile.value.classes.map((c) => c.class) : []
+		qualifications.value = profile.value.qualifications
+			? profile.value.qualifications.map((q) => ({
+				degree: q.degree,
+				institution: q.institution,
+				year: q.year,
+			}))
+			: []
+	}
+}
+
 async function loadFormOptions() {
+	loadingOptions.value = true
 	try {
 		const [subRes, brdRes, clsRes] = await Promise.all([
 			call('frappe.client.get_list', { doctype: 'Subject', fields: ['name'], limit: 100 }),
@@ -198,50 +355,8 @@ async function loadFormOptions() {
 		allClasses.value = clsRes ? clsRes.map((r) => r.name) : []
 	} catch (e) {
 		console.error('Failed to load options:', e)
-	}
-}
-
-async function fetchProfile() {
-	loading.value = true
-	try {
-		if (user.data?.name) {
-			const tutorRes = await call('frappe.client.get_list', {
-				doctype: 'Tutor Profile',
-				filters: { user: user.data.name },
-				fields: ['name', 'tutor_name', 'bio', 'years_of_experience', 'hourly_rate', 'timezone'],
-			})
-			if (tutorRes && tutorRes.length) {
-				const profile = tutorRes[0]
-				isEdit.value = true
-				Object.assign(form, {
-					tutor_name: profile.tutor_name,
-					bio: profile.bio || '',
-					years_of_experience: profile.years_of_experience,
-					hourly_rate: profile.hourly_rate || 500,
-					timezone: profile.timezone || 'Asia/Kolkata',
-				})
-				const doc = await call('frappe.client.get', {
-					doctype: 'Tutor Profile',
-					name: profile.name,
-				})
-				if (doc) {
-					selectedSubjects.value = doc.subjects ? doc.subjects.map((s) => s.subject) : []
-					selectedBoards.value = doc.boards ? doc.boards.map((b) => b.board) : []
-					selectedClasses.value = doc.classes ? doc.classes.map((c) => c.class) : []
-					qualifications.value = doc.qualifications
-						? doc.qualifications.map((q) => ({
-							degree: q.degree,
-							institution: q.institution,
-							year: q.year,
-						}))
-						: []
-				}
-			}
-		}
-	} catch (e) {
-		console.error('Failed to load profile:', e)
 	} finally {
-		loading.value = false
+		loadingOptions.value = false
 	}
 }
 
@@ -284,8 +399,8 @@ async function saveProfile() {
 		})
 		if (res && res.success) {
 			toast({ title: res.message, variant: 'success' })
-			isEdit.value = true
-			await fetchProfile()
+			isCreating.value = false
+			await dashboardStore.dashboardData.submit()
 		} else {
 			toast({ title: res.error || __('Failed to save profile.'), variant: 'error' })
 		}

@@ -324,6 +324,17 @@ router.beforeEach(async (to, from, next) => {
 			window.location.href = '/login'
 			return
 		}
+	} else {
+		const roles = userResource.data?.roles || []
+		const isTutor = roles.includes('Tutor')
+		const tutorOnlyRoutes = ['TutorDashboard', 'AvailabilityRules', 'SlotCalendar', 'TutorSessions', 'TutorProfile']
+
+		if (tutorOnlyRoutes.includes(to.name) && !isTutor) {
+			return next({ name: 'Courses' })
+		}
+		if (to.name === 'BookSession' && isTutor) {
+			return next({ name: 'TutorDashboard' })
+		}
 	}
 	return next()
 })

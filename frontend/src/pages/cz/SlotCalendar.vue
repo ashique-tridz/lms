@@ -7,6 +7,7 @@
 			/>
 			<Button
 				:loading="regenerating"
+				v-if="profile"
 				@click="triggerRegenerate"
 				variant="outline"
 				class="text-xs font-semibold"
@@ -16,63 +17,136 @@
 		</header>
 
 		<div class="max-w-6xl mx-auto p-5 sm:p-8 space-y-6">
-			<div v-if="loading" class="flex justify-center py-20">
+			<!-- Loading State -->
+			<div v-if="dashboardStore.dashboardData.loading" class="flex justify-center py-20">
 				<LoadingIndicator class="w-10 h-10 text-gray-400" />
 			</div>
 
-			<div v-else-if="!tutorName" class="text-center py-20 bg-surface-cards border border-outline-gray-2 rounded-lg">
-				<p class="text-ink-gray-5">{{ __('No Tutor Profile linked to your user account.') }}</p>
-				<router-link :to="{ name: 'TutorProfile' }" class="mt-4 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold">
+			<!-- Empty State: No Profile -->
+			<div v-else-if="!profile" class="text-center py-20 bg-white border border-gray-200 rounded-xl shadow-sm space-y-4">
+				<div class="flex flex-col items-center justify-center space-y-2">
+					<div class="p-3 bg-gray-50 rounded-full">
+						<CalendarIcon class="w-8 h-8 text-gray-400 stroke-1.5" />
+					</div>
+					<h3 class="text-lg font-medium text-gray-900">{{ __('No Tutor Profile linked to your account') }}</h3>
+					<p class="text-sm text-gray-500 max-w-sm">
+						{{ __('Please create your tutor profile first to manage generated bookable slots.') }}
+					</p>
+				</div>
+				<router-link
+					:to="{ name: 'TutorProfile' }"
+					class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+				>
 					{{ __('Create Tutor Profile') }}
 				</router-link>
 			</div>
 
+			<!-- Slots Page Content -->
 			<div v-else class="space-y-6">
 				<div>
-					<h2 class="text-2xl font-bold text-ink-gray-9">{{ __('Generated Availability Slots') }}</h2>
-					<p class="text-sm text-ink-gray-5 mt-1">{{ __('View, delete or manage individual generated bookable slots.') }}</p>
+					<h2 class="text-xl font-semibold text-gray-900">{{ __('Generated Availability Slots') }}</h2>
+					<p class="text-sm text-gray-500 mt-1">{{ __('Manage your available slots and view linked booking states.') }}</p>
 				</div>
 
-				<!-- Slots Grid -->
-				<div v-if="Object.keys(groupedSlots).length" class="space-y-6">
+				<!-- Tabs Navigation -->
+				<div class="flex border-b border-gray-200 gap-6">
+					<button
+						v-for="tab in tabs"
+						:key="tab.id"
+						@click="activeTab = tab.id"
+						class="pb-3 text-sm font-semibold relative transition-colors focus:outline-none"
+						:class="activeTab === tab.id ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'"
+					>
+						{{ tab.name }} ({{ tab.count }})
+						<div
+							v-if="activeTab === tab.id"
+							class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
+						></div>
+					</button>
+				</div>
+
+				<!-- Slots Grouped by Date -->
+				<div v-if="sortedDates.length" class="space-y-6">
 					<div
 						v-for="date in sortedDates"
 						:key="date"
-						class="bg-surface-cards border border-outline-gray-2 rounded-lg p-5 shadow-sm space-y-4"
+						class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4"
 					>
-						<h3 class="font-bold text-sm text-ink-gray-9 border-b border-outline-gray-1 pb-2">
+						<h3 class="font-bold text-sm text-gray-900 border-b border-gray-100 pb-2">
 							{{ formatDateFriendly(date) }}
 						</h3>
-						<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 							<div
 								v-for="slot in groupedSlots[date]"
 								:key="slot.name"
-								class="border border-outline-gray-2 rounded p-3 flex justify-between items-center bg-surface-gray-1/30"
+								class="border border-gray-200 rounded-xl p-4 flex flex-col justify-between bg-gray-50/50 hover:bg-gray-50 hover:border-gray-300 transition-all space-y-3"
 							>
-								<div>
-									<p class="text-sm font-semibold text-ink-gray-8">
-										{{ formatTime(slot.start_datetime) }} - {{ formatTime(slot.end_datetime) }}
-									</p>
-									<span class="text-[10px] mt-1 block">
+								<div class="space-y-2">
+									<!-- Time Range & Badge -->
+									<div class="flex justify-between items-start">
+										<span class="text-sm font-bold text-gray-900">
+											{{ formatTime(slot.start_datetime) }} - {{ formatTime(slot.end_datetime) }}
+										</span>
 										<Badge :theme="getStatusTheme(slot.status)" size="sm">
 											{{ slot.status }}
 										</Badge>
-									</span>
+									</div>
+
+									<!-- Linked Booking info if Booked or Locked -->
+									<div
+										v-if="getBookingForSlot(slot.name)"
+										class="border-t border-gray-100 pt-2.5 mt-2.5 space-y-1.5 text-xs text-gray-600"
+									>
+										<div class="flex justify-between">
+											<span class="text-gray-400 font-medium">{{ __('Student') }}:</span>
+											<span class="font-semibold text-gray-800">{{ getBookingForSlot(slot.name).student }}</span>
+										</div>
+										<div class="flex justify-between">
+											<span class="text-gray-400 font-medium">{{ __('Subject') }}:</span>
+											<span class="font-semibold text-gray-800">{{ getBookingForSlot(slot.name).subject || '—' }}</span>
+										</div>
+										<div class="flex justify-between">
+											<span class="text-gray-400 font-medium">{{ __('Class') }}:</span>
+											<span class="font-semibold text-gray-800">
+												{{ getBookingForSlot(slot.name).class || '—' }} ({{ getBookingForSlot(slot.name).board || '—' }})
+											</span>
+										</div>
+										<div class="flex justify-between" v-if="getBookingForSlot(slot.name).amount">
+											<span class="text-gray-400 font-medium">{{ __('Price') }}:</span>
+											<span class="font-semibold text-gray-800">{{ getBookingForSlot(slot.name).amount }} INR</span>
+										</div>
+									</div>
 								</div>
 
-								<button
-									v-if="slot.status === 'Available'"
-									@click="deleteSlot(slot.name)"
-									class="text-xs text-red-600 hover:underline font-semibold"
-								>
-									{{ __('Remove') }}
-								</button>
+								<!-- Action Button -->
+								<div class="flex justify-end pt-2 border-t border-gray-100/50">
+									<Button
+										v-if="slot.status === 'Available'"
+										@click="deleteSlot(slot.name)"
+										variant="outline"
+										class="text-xs font-semibold text-red-600 hover:text-red-700"
+									>
+										{{ __('Remove Slot') }}
+									</Button>
+									<a
+										v-else-if="slot.status === 'Booked' && getBookingForSlot(slot.name)?.meeting_link"
+										:href="getBookingForSlot(slot.name).meeting_link"
+										target="_blank"
+										class="inline-block px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+									>
+										{{ __('Join Class') }}
+									</a>
+									<span v-else-if="slot.status === 'Temporarily Locked'" class="text-xs text-gray-400 italic">
+										{{ __('Awaiting Payment...') }}
+									</span>
+									<span v-else class="text-xs text-gray-400 italic">—</span>
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-				<div v-else class="text-center py-20 text-ink-gray-5 bg-surface-cards border border-outline-gray-2 rounded-lg shadow-sm">
-					{{ __('No slots generated. Set up availability rules to generate slots automatically.') }}
+				<div v-else class="text-center py-20 text-gray-500 bg-white border border-gray-200 rounded-xl shadow-sm">
+					{{ __('No slots found matching this status filter.') }}
 				</div>
 			</div>
 		</div>
@@ -81,52 +155,50 @@
 
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue'
-import { Breadcrumbs, Button, LoadingIndicator, Badge, call } from 'frappe-ui'
+import { Breadcrumbs, Button, LoadingIndicator, Badge, call, toast } from 'frappe-ui'
+import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
+import { Calendar as CalendarIcon } from 'lucide-vue-next'
 
-const user = inject('$user')
+const dashboardStore = useTutorDashboardStore()
 const dayjs = inject('$dayjs')
 
-const loading = ref(true)
 const regenerating = ref(false)
-const tutorName = ref('')
-const slots = ref([])
+const activeTab = ref('available')
 
 onMounted(async () => {
-	await fetchTutorAndSlots()
+	await dashboardStore.dashboardData.submit()
 })
 
-async function fetchTutorAndSlots() {
-	loading.value = true
-	try {
-		if (user.data?.name) {
-			const tutorRes = await call('frappe.client.get_value', {
-				doctype: 'Tutor Profile',
-				filters: { user: user.data.name },
-				fieldname: 'name',
-			})
-			if (tutorRes && tutorRes.message) {
-				tutorName.value = tutorRes.message.name
-				const slotsRes = await call('frappe.client.get_list', {
-					doctype: 'Tutor Availability Slot',
-					filters: { tutor: tutorName.value },
-					fields: ['name', 'start_datetime', 'end_datetime', 'status'],
-					order_by: 'start_datetime asc',
-					limit: 200,
-				})
-				slots.value = slotsRes || []
-			}
-		}
-	} catch (e) {
-		console.error("Failed to load slots:", e)
-	} finally {
-		loading.value = false
+const profile = computed(() => dashboardStore.dashboardData.data?.profile)
+const slots = computed(() => dashboardStore.dashboardData.data?.slots || [])
+const sessions = computed(() => dashboardStore.dashboardData.data?.sessions || [])
+
+const tabs = computed(() => {
+	const availCount = slots.value.filter(s => s.status === 'Available' || s.status === 'Temporarily Locked').length
+	const bookedCount = slots.value.filter(s => s.status === 'Booked').length
+	const expiredCount = slots.value.filter(s => s.status === 'Expired' || s.status === 'Cancelled' || s.status === 'Blocked').length
+
+	return [
+		{ id: 'available', name: __('Available Slots'), count: availCount },
+		{ id: 'booked', name: __('Booked Slots'), count: bookedCount },
+		{ id: 'expired', name: __('Expired Slots'), count: expiredCount },
+	]
+})
+
+const filteredSlots = computed(() => {
+	if (activeTab.value === 'available') {
+		return slots.value.filter(s => s.status === 'Available' || s.status === 'Temporarily Locked')
+	} else if (activeTab.value === 'booked') {
+		return slots.value.filter(s => s.status === 'Booked')
+	} else {
+		return slots.value.filter(s => s.status === 'Expired' || s.status === 'Cancelled' || s.status === 'Blocked')
 	}
-}
+})
 
 const groupedSlots = computed(() => {
-	if (!slots.value || !dayjs) return {}
+	if (!filteredSlots.value || !dayjs) return {}
 	const groups = {}
-	slots.value.forEach((slot) => {
+	filteredSlots.value.forEach((slot) => {
 		const localDate = dayjs.utc(slot.start_datetime).local().format('YYYY-MM-DD')
 		if (!groups[localDate]) {
 			groups[localDate] = []
@@ -139,6 +211,10 @@ const groupedSlots = computed(() => {
 const sortedDates = computed(() => {
 	return Object.keys(groupedSlots.value).sort()
 })
+
+function getBookingForSlot(slotName) {
+	return sessions.value.find(s => s.slot === slotName)
+}
 
 function formatTime(utcTime) {
 	if (!utcTime || !dayjs) return ''
@@ -164,17 +240,19 @@ function getStatusTheme(status) {
 }
 
 async function triggerRegenerate() {
+	if (!profile.value) return
 	regenerating.value = true
 	try {
 		await call('smart_learning.services.slot_generation_service.regenerate_future_slots', {
-			tutor_profile: tutorName.value,
+			tutor_profile: profile.value.name,
 		})
-		alert(__('Slot regeneration triggered. It will run in the background.'))
+		toast({ title: __('Slot regeneration triggered. Slots will update shortly.'), variant: 'success' })
 		setTimeout(async () => {
-			await fetchTutorAndSlots()
+			await dashboardStore.dashboardData.submit()
 		}, 1000)
 	} catch (e) {
 		console.error("Slot regeneration failed:", e)
+		toast({ title: __('Slot regeneration failed.'), variant: 'error' })
 	} finally {
 		regenerating.value = false
 	}
@@ -187,9 +265,11 @@ async function deleteSlot(name) {
 			doctype: 'Tutor Availability Slot',
 			name,
 		})
-		await fetchTutorAndSlots()
+		toast({ title: __('Slot removed.'), variant: 'success' })
+		await dashboardStore.dashboardData.submit()
 	} catch (e) {
 		console.error("Failed to delete slot:", e)
+		toast({ title: __('Failed to delete slot.'), variant: 'error' })
 	}
 }
 </script>

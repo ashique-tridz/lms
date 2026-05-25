@@ -533,7 +533,7 @@ const getSidebarItems = (forMobile = false) => {
 					icon: 'Search',
 					to: 'BookSession',
 					activeFor: ['BookSession'],
-					condition: () => !forMobile && userResource?.data,
+					condition: () => !forMobile && userResource?.data && !userResource?.data?.roles?.includes('Tutor'),
 				},
 				{
 					label: 'Revision',
