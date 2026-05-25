@@ -185,7 +185,7 @@ async function startBooking() {
 		const res = await bookingStore.initiateBooking({
 			slot: selectedSlot.value.name,
 			tutor: props.tutor.name,
-			amount: props.tutor.hourly_rate || 0,
+			amount: props.tutor.hourly_rate || 500,
 			currency: currency.value,
 			subject: filters.subject,
 			board: filters.board,

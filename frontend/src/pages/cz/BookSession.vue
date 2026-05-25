@@ -218,9 +218,9 @@ function toOptions(data, emptyLabel) {
 	return base.concat(data.map((o) => ({ label: o.label, value: o.value })))
 }
 
-const subjectOptions = computed(() => toOptions(subjectsList.data, __('All Subjects')))
-const classOptions   = computed(() => toOptions(classesList.data, __('All Classes')))
-const boardOptions   = computed(() => toOptions(boardsList.data, __('All Boards')))
+const subjectOptions = computed(() => toOptions(subjectsList.data))
+const classOptions   = computed(() => toOptions(classesList.data))
+const boardOptions   = computed(() => toOptions(boardsList.data))
 
 // ── Search (manual trigger) ────────────────────────────────────────────────
 function onSearch() {
