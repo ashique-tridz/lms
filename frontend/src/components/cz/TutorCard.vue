@@ -1,7 +1,6 @@
 <template>
 	<div
-		class="flex flex-col h-full bg-surface-white border border-outline-gray-2 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
-	>
+		class="flex flex-col h-full bg-surface-white border border-outline-gray-2 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
 		<div class="flex flex-col flex-auto">
 			<!-- Header: name + timezone -->
 			<div class="flex items-start justify-between gap-4 mb-4 pb-3 border-b border-outline-gray-1">
@@ -10,7 +9,7 @@
 						{{ tutor.tutor_name }}
 					</h3>
 					<p class="text-xs text-ink-gray-5 mt-0.5">
-						{{ tutor.years_of_experiance || tutor.years_of_experience || 0 }}
+						{{ tutor.years_of_experience || tutor.years_of_experience || 0 }}
 						{{ __('yrs exp') }}
 					</p>
 				</div>
@@ -35,25 +34,14 @@
 					<span class="text-[10px] uppercase tracking-wider text-ink-gray-4 mr-1">
 						{{ __('Subjects') }}:
 					</span>
-					<Badge
-						v-for="sub in tutor.subjects"
-						:key="sub.subject"
-						:label="sub.subject"
-						theme="gray"
-						size="sm"
-					/>
+					<Badge v-for="sub in tutor.subjects" :key="sub.subject" :label="sub.subject" theme="gray"
+						size="sm" />
 				</div>
 				<div v-if="tutor.classes?.length" class="flex flex-wrap items-center gap-1">
 					<span class="text-[10px] uppercase tracking-wider text-ink-gray-4 mr-1">
 						{{ __('Classes') }}:
 					</span>
-					<Badge
-						v-for="cls in tutor.classes"
-						:key="cls.class"
-						:label="cls.class"
-						theme="blue"
-						size="sm"
-					/>
+					<Badge v-for="cls in tutor.classes" :key="cls.class" :label="cls.class" theme="blue" size="sm" />
 				</div>
 			</div>
 

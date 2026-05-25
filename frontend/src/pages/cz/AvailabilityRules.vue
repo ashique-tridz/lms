@@ -142,7 +142,7 @@ async function fetchTutorAndRules() {
 				tutorName.value = tutorRes.message.name
 				const rulesRes = await call('frappe.client.get_list', {
 					doctype: 'Tutor Availability Rule',
-					filters: { tutor: tutorName.value },
+					filters: { tutor: tutorName.value, docstatus: ['!=', 2] },
 					fields: ['name', 'weekday', 'start_time', 'end_time', 'slot_duration', 'active', 'effective_from', 'effective_to', 'timezone', 'auto_regenerate'],
 				})
 				rules.value = rulesRes || []
@@ -179,18 +179,32 @@ async function handleSave(formData) {
 	saving.value = true
 	try {
 		if (editingRule.value) {
-			await call('frappe.client.set_value', {
+			// Cancel the old rule first
+			await call('frappe.client.cancel', {
 				doctype: 'Tutor Availability Rule',
 				name: editingRule.value.name,
-				fieldname: formData,
 			})
-		} else {
+			// Insert the updated rule as a new document
 			const doc = {
 				doctype: 'Tutor Availability Rule',
 				tutor: tutorName.value,
+				workflow_state: 'Approved',
 				...formData,
 			}
-			await call('frappe.client.insert', { doc })
+			const newDoc = await call('frappe.client.insert', { doc })
+			// Submit the new document to generate slots
+			await call('frappe.client.submit', { doc: newDoc })
+		} else {
+			// Insert the new rule
+			const doc = {
+				doctype: 'Tutor Availability Rule',
+				tutor: tutorName.value,
+				workflow_state: 'Approved',
+				...formData,
+			}
+			const newDoc = await call('frappe.client.insert', { doc })
+			// Submit the rule to generate slots
+			await call('frappe.client.submit', { doc: newDoc })
 		}
 		showModal.value = false
 		await fetchTutorAndRules()
@@ -204,7 +218,7 @@ async function handleSave(formData) {
 async function deleteRule(name) {
 	if (!confirm(__('Are you sure you want to delete this rule?'))) return
 	try {
-		await call('frappe.client.delete_doc', {
+		await call('frappe.client.cancel', {
 			doctype: 'Tutor Availability Rule',
 			name,
 		})

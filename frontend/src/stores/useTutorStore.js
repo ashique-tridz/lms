@@ -23,7 +23,7 @@ export const useTutorStore = defineStore('tutor-store', () => {
 				active: 1,
 				verification_status: 'Verified',
 			},
-			fields: ['name', 'tutor_name', 'bio', 'years_of_experiance', 'timezone'],
+			fields: ['name', 'tutor_name', 'bio', 'years_of_experience', 'timezone'],
 		},
 		auto: true,
 	})

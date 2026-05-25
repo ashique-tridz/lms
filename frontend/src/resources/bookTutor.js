@@ -112,4 +112,7 @@ export const tutorsList = createResource({
 			page_length: filterState.page_length,
 		}
 	},
+	transform(res) {
+		return res?.success ? res.data : []
+	},
 })

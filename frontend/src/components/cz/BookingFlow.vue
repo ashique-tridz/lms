@@ -7,7 +7,7 @@
 					{{ tutor.tutor_name }}
 				</h3>
 				<p class="text-xs text-ink-gray-5 mt-1">
-					{{ tutor.years_of_experiance || tutor.years_of_experience || 0 }}
+					{{ tutor.years_of_experience || tutor.years_of_experience || 0 }}
 					{{ __('years of experience') }}
 					<span class="mx-1">·</span>
 					{{ tutor.timezone || systemTimezone }}
@@ -34,31 +34,19 @@
 				<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">
 					{{ __('Subject') }}
 				</label>
-				<Select
-					v-model="filters.subject"
-					:options="subjectOptions"
-					:placeholder="__('Select Subject')"
-				/>
+				<Select v-model="filters.subject" :options="subjectOptions" :placeholder="__('Select Subject')" />
 			</div>
 			<div>
 				<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">
 					{{ __('Board') }}
 				</label>
-				<Select
-					v-model="filters.board"
-					:options="boardOptions"
-					:placeholder="__('Select Board')"
-				/>
+				<Select v-model="filters.board" :options="boardOptions" :placeholder="__('Select Board')" />
 			</div>
 			<div>
 				<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">
 					{{ __('Class') }}
 				</label>
-				<Select
-					v-model="filters.class_name"
-					:options="classOptions"
-					:placeholder="__('Select Class')"
-				/>
+				<Select v-model="filters.class_name" :options="classOptions" :placeholder="__('Select Class')" />
 			</div>
 		</div>
 
@@ -67,19 +55,13 @@
 			<LoadingIndicator class="w-8 h-8 text-ink-gray-4" />
 		</div>
 		<div v-else>
-			<SlotPicker
-				:slots="slots"
-				:selectedSlotName="selectedSlot?.name"
-				:systemTimezone="systemTimezone"
-				@selectSlot="onSelectSlot"
-			/>
+			<SlotPicker :slots="slots" :selectedSlotName="selectedSlot?.name" :systemTimezone="systemTimezone"
+				@selectSlot="onSelectSlot" />
 		</div>
 
 		<!-- Booking review bar -->
-		<div
-			v-if="selectedSlot"
-			class="bg-blue-50 border border-blue-200 rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-		>
+		<div v-if="selectedSlot"
+			class="bg-blue-50 border border-blue-200 rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
 			<div class="space-y-1">
 				<h4 class="font-bold text-xs text-blue-900 uppercase tracking-wider">
 					{{ __('Booking Review') }}
@@ -94,23 +76,14 @@
 				</p>
 			</div>
 
-			<Button
-				:loading="bookingStore.loading"
-				variant="solid"
-				class="w-full sm:w-auto"
-				@click="startBooking"
-			>
+			<Button :loading="bookingStore.loading" variant="solid" class="w-full sm:w-auto" @click="startBooking">
 				{{ __('Proceed to Pay') }}
 			</Button>
 		</div>
 
 		<!-- Razorpay headless -->
-		<RazorpayCheckout
-			v-if="checkoutDetails"
-			:checkoutDetails="checkoutDetails"
-			@success="onPaymentSuccess"
-			@failure="onPaymentFailure"
-		/>
+		<RazorpayCheckout v-if="checkoutDetails" :checkoutDetails="checkoutDetails" @success="onPaymentSuccess"
+			@failure="onPaymentFailure" />
 	</div>
 </template>
 
@@ -128,20 +101,20 @@ const props = defineProps({
 	tutor: { type: Object, required: true },
 })
 
-const dayjs        = inject('$dayjs')
-const router       = useRouter()
-const tutorStore   = useTutorStore()
+const dayjs = inject('$dayjs')
+const router = useRouter()
+const tutorStore = useTutorStore()
 const bookingStore = useBookingStore()
 
 // ── Dynamic currency + timezone from system settings ───────────────────────
-const currency       = computed(() => systemSettings.data?.currency || 'INR')
+const currency = computed(() => systemSettings.data?.currency || 'INR')
 const systemTimezone = computed(() => systemSettings.data?.timezone || 'UTC')
 
 // ── Per-booking filters ────────────────────────────────────────────────────
 const filters = reactive({
-	subject:    props.tutor.subjects?.[0]?.subject    || '',
-	board:      props.tutor.boards?.[0]?.board        || '',
-	class_name: props.tutor.classes?.[0]?.class       || '',
+	subject: props.tutor.subjects?.[0]?.subject || '',
+	board: props.tutor.boards?.[0]?.board || '',
+	class_name: props.tutor.classes?.[0]?.class || '',
 })
 
 // Build Select options from tutor child tables
@@ -155,19 +128,19 @@ const classOptions = computed(() =>
 	(props.tutor.classes || []).map((c) => ({ label: c.class, value: c.class }))
 )
 
-const selectedSlot   = ref(null)
+const selectedSlot = ref(null)
 const checkoutDetails = ref(null)
 
 const slotsList = tutorStore.slotsList
-const slots     = computed(() => (slotsList.data?.success ? slotsList.data.data : []))
+const slots = computed(() => (slotsList.data?.success ? slotsList.data.data : []))
 
 // Reset filters when tutor changes
 watch(
 	() => props.tutor.name,
 	() => {
-		filters.subject    = props.tutor.subjects?.[0]?.subject    || ''
-		filters.board      = props.tutor.boards?.[0]?.board        || ''
-		filters.class_name = props.tutor.classes?.[0]?.class       || ''
+		filters.subject = props.tutor.subjects?.[0]?.subject || ''
+		filters.board = props.tutor.boards?.[0]?.board || ''
+		filters.class_name = props.tutor.classes?.[0]?.class || ''
 	},
 	{ immediate: true }
 )
@@ -176,11 +149,11 @@ watch(
 watch(
 	filters,
 	() => {
-		selectedSlot.value             = null
-		tutorStore.filters.tutor       = props.tutor.name
-		tutorStore.filters.subject     = filters.subject
-		tutorStore.filters.board       = filters.board
-		tutorStore.filters.class_name  = filters.class_name
+		selectedSlot.value = null
+		tutorStore.filters.tutor = props.tutor.name
+		tutorStore.filters.subject = filters.subject
+		tutorStore.filters.board = filters.board
+		tutorStore.filters.class_name = filters.class_name
 	},
 	{ immediate: true, deep: true }
 )
@@ -198,7 +171,7 @@ function formatSlotTime(start, end) {
 	const tz = systemTimezone.value
 	// Convert UTC datetime strings to system timezone
 	const s = dayjs.utc ? dayjs.utc(start).tz(tz) : dayjs(start)
-	const e = dayjs.utc ? dayjs.utc(end).tz(tz)   : dayjs(end)
+	const e = dayjs.utc ? dayjs.utc(end).tz(tz) : dayjs(end)
 	return `${s.format('ddd, DD MMM YYYY, hh:mm A')} – ${e.format('hh:mm A')} (${tz})`
 }
 
@@ -210,12 +183,12 @@ async function startBooking() {
 	}
 	try {
 		const res = await bookingStore.initiateBooking({
-			slot:       selectedSlot.value.name,
-			tutor:      props.tutor.name,
-			amount:     props.tutor.hourly_rate || 0,
-			currency:   currency.value,
-			subject:    filters.subject,
-			board:      filters.board,
+			slot: selectedSlot.value.name,
+			tutor: props.tutor.name,
+			amount: props.tutor.hourly_rate || 0,
+			currency: currency.value,
+			subject: filters.subject,
+			board: filters.board,
 			class_name: filters.class_name,
 		})
 		if (res) checkoutDetails.value = res
