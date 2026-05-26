@@ -1,11 +1,11 @@
 <template>
-	<div class="flex flex-col bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-		<div class="flex items-start justify-between pb-3 border-b border-gray-100">
+	<div class="flex flex-col border rounded-md p-4 bg-surface-white hover:border-outline-gray-3 transition-colors">
+		<div class="flex items-start justify-between pb-3 border-b">
 			<div>
-				<h4 class="font-bold text-lg text-gray-900">
+				<h4 class="font-bold text-base text-ink-gray-9">
 					{{ recommendation.lesson }}
 				</h4>
-				<p class="text-xs text-gray-500 mt-1 uppercase tracking-wider text-[10px]">
+				<p class="text-xs text-ink-gray-5 mt-1 uppercase tracking-wider text-[10px]">
 					{{ __('Recommended') }}: {{ formatDate(recommendation.recommended_on) }}
 				</p>
 			</div>
@@ -25,35 +25,35 @@
 			</div>
 		</div>
 
-		<div class="text-sm text-gray-800 space-y-4 py-4">
+		<div class="text-sm text-ink-gray-8 space-y-4 py-4">
 			<div>
-				<span class="font-bold text-[10px] uppercase tracking-wider text-gray-400 block mb-1.5">{{ __('Reason') }}</span>
-				<p class="leading-relaxed bg-gray-50 p-3.5 border border-gray-100 rounded-lg">
+				<span class="font-bold text-[10px] uppercase tracking-wider text-ink-gray-4 block mb-1.5">{{ __('Reason') }}</span>
+				<p class="leading-relaxed bg-surface-gray-2 p-3 border rounded-md text-ink-gray-7 text-xs font-normal">
 					{{ recommendation.recommendation_reason }}
 				</p>
 			</div>
 
 			<div v-if="recommendation.revision_notes">
-				<span class="font-bold text-[10px] uppercase tracking-wider text-gray-400 block mb-1.5">{{ __('Revision Notes') }}</span>
-				<p class="leading-relaxed whitespace-pre-line bg-gray-50 p-3.5 border border-gray-100 rounded-lg">
+				<span class="font-bold text-[10px] uppercase tracking-wider text-ink-gray-4 block mb-1.5">{{ __('Revision Notes') }}</span>
+				<p class="leading-relaxed whitespace-pre-line bg-surface-gray-2 p-3 border rounded-md text-ink-gray-7 text-xs font-normal">
 					{{ recommendation.revision_notes }}
 				</p>
 			</div>
 
 			<div v-if="recommendation.practice_questions">
-				<span class="font-bold text-[10px] uppercase tracking-wider text-gray-400 block mb-1.5">{{ __('Practice Questions') }}</span>
-				<p class="leading-relaxed whitespace-pre-line bg-gray-50 p-3.5 border border-gray-100 rounded-lg">
+				<span class="font-bold text-[10px] uppercase tracking-wider text-ink-gray-4 block mb-1.5">{{ __('Practice Questions') }}</span>
+				<p class="leading-relaxed whitespace-pre-line bg-surface-gray-2 p-3 border rounded-md text-ink-gray-7 text-xs font-normal">
 					{{ recommendation.practice_questions }}
 				</p>
 			</div>
 		</div>
 
-		<div class="pt-4 border-t border-gray-100">
+		<div class="pt-4 border-t">
 			<Button
 				:loading="resolving"
 				@click="goToLesson"
 				variant="solid"
-				class="w-full justify-center rounded-lg py-2.5 text-xs font-semibold"
+				class="w-full justify-center py-2 text-xs font-semibold"
 			>
 				{{ __('Revise Lesson') }}
 			</Button>
@@ -81,7 +81,7 @@ const router = useRouter()
 const priorityClasses = computed(() => {
 	switch (props.recommendation.priority) {
 		case 'High':
-			return 'border-red-200 bg-red-50 text-red-700'
+			return 'border-red-200 bg-red-50 text-red-700 font-semibold'
 		case 'Medium':
 			return 'border-amber-200 bg-amber-50 text-amber-700 font-semibold'
 		case 'Low':

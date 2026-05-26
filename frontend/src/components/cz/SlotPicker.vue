@@ -63,7 +63,9 @@
 </template>
 
 <script setup>
-import { computed, inject, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { convertToLocal, getBrowserTimezone } from '@/utils/timezone'
+import dayjs from '@/utils/dayjs'
 
 const props = defineProps({
 	slots: {
@@ -86,29 +88,16 @@ const props = defineProps({
 
 defineEmits(['selectSlot'])
 
-const dayjs = inject('$dayjs')
 const selectedDate = ref('')
 
-/**
- * Convert a UTC datetime string to the system timezone using dayjs.
- * Falls back to browser local time if dayjs-timezone plugin is not available.
- */
-function toSystemTz(utcStr) {
-	if (!dayjs) return null
-	if (props.systemTimezone && dayjs.utc && dayjs.tz) {
-		return dayjs.utc(utcStr).tz(props.systemTimezone)
-	}
-	return dayjs(utcStr)
-}
+const displayTimezone = computed(() => getBrowserTimezone())
 
-const displayTimezone = computed(() => props.systemTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone)
-
-// Group slots by date in the system timezone
+// Group slots by date in the local browser timezone
 const groupedSlots = computed(() => {
-	if (!props.slots || !dayjs) return {}
+	if (!props.slots) return {}
 	const groups = {}
 	props.slots.forEach((slot) => {
-		const d = toSystemTz(slot.start_datetime)
+		const d = convertToLocal(slot.start_datetime)
 		if (!d) return
 		const localDate = d.format('YYYY-MM-DD')
 		if (!groups[localDate]) groups[localDate] = []
@@ -132,19 +121,19 @@ watch(
 )
 
 function formatDayOfWeek(dateStr) {
-	return dayjs ? toSystemTz(dateStr + 'T00:00:00').format('ddd') : ''
+	return dayjs(dateStr).format('ddd')
 }
 function formatDayOfMonth(dateStr) {
-	return dayjs ? toSystemTz(dateStr + 'T00:00:00').format('D') : ''
+	return dayjs(dateStr).format('D')
 }
 function formatMonth(dateStr) {
-	return dayjs ? toSystemTz(dateStr + 'T00:00:00').format('MMM') : ''
+	return dayjs(dateStr).format('MMM')
 }
 function formatDateFriendly(dateStr) {
-	return dayjs ? toSystemTz(dateStr + 'T00:00:00').format('dddd, MMMM D, YYYY') : ''
+	return dayjs(dateStr).format('dddd, MMMM D, YYYY')
 }
-function formatTime(utcStr) {
-	if (!dayjs) return ''
-	return toSystemTz(utcStr).format('hh:mm A')
+function formatTime(startDatetime) {
+	const localObj = convertToLocal(startDatetime)
+	return localObj ? localObj.format('hh:mm A') : ''
 }
 </script>

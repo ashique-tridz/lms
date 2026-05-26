@@ -1,41 +1,42 @@
 <template>
-	<div class="min-h-screen bg-surface-gray-1">
-		<header class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5">
-			<Breadcrumbs
-				class="h-7"
-				:items="[{ label: __('My Slots'), route: { name: 'SlotCalendar' } }]"
-			/>
-			<Button
-				:loading="regenerating"
-				v-if="profile"
-				@click="triggerRegenerate"
-				variant="outline"
-				class="text-xs font-semibold"
-			>
-				{{ __('Regenerate Slots') }}
-			</Button>
-		</header>
+	<div>
+		<LayoutHeader>
+			<template #left-header>
+				<Breadcrumbs class="h-7" :items="breadcrumbs" />
+			</template>
+			<template #right-header>
+				<Button
+					:loading="regenerating"
+					v-if="profile"
+					@click="triggerRegenerate"
+					variant="outline"
+					class="text-xs font-semibold"
+				>
+					{{ __('Regenerate Slots') }}
+				</Button>
+			</template>
+		</LayoutHeader>
 
-		<div class="max-w-6xl mx-auto p-5 sm:p-8 space-y-6">
+		<div class="mx-auto flex min-h-0 w-full flex-1 flex-col p-5 max-w-6xl">
 			<!-- Loading State -->
 			<div v-if="dashboardStore.dashboardData.loading" class="flex justify-center py-20">
 				<LoadingIndicator class="w-10 h-10 text-gray-400" />
 			</div>
 
 			<!-- Empty State: No Profile -->
-			<div v-else-if="!profile" class="text-center py-20 bg-white border border-gray-200 rounded-xl shadow-sm space-y-4">
+			<div v-else-if="!profile" class="text-center py-20 border rounded-md space-y-4 bg-surface-white">
 				<div class="flex flex-col items-center justify-center space-y-2">
-					<div class="p-3 bg-gray-50 rounded-full">
-						<CalendarIcon class="w-8 h-8 text-gray-400 stroke-1.5" />
+					<div class="p-3 bg-surface-gray-2 rounded-full">
+						<CalendarIcon class="w-8 h-8 text-ink-gray-5 stroke-1.5" />
 					</div>
-					<h3 class="text-lg font-medium text-gray-900">{{ __('No Tutor Profile linked to your account') }}</h3>
-					<p class="text-sm text-gray-500 max-w-sm">
+					<h3 class="text-lg font-medium text-ink-gray-9">{{ __('No Tutor Profile linked to your account') }}</h3>
+					<p class="text-sm text-ink-gray-7 max-w-sm">
 						{{ __('Please create your tutor profile first to manage generated bookable slots.') }}
 					</p>
 				</div>
 				<router-link
 					:to="{ name: 'TutorProfile' }"
-					class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+					class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold shadow-sm transition-colors"
 				>
 					{{ __('Create Tutor Profile') }}
 				</router-link>
@@ -43,26 +44,18 @@
 
 			<!-- Slots Page Content -->
 			<div v-else class="space-y-6">
-				<div>
-					<h2 class="text-xl font-semibold text-gray-900">{{ __('Generated Availability Slots') }}</h2>
-					<p class="text-sm text-gray-500 mt-1">{{ __('Manage your available slots and view linked booking states.') }}</p>
+				<div class="border-b pb-4">
+					<h2 class="text-xl font-semibold text-ink-gray-9">{{ __('Generated Availability Slots') }}</h2>
+					<p class="text-sm text-ink-gray-5 mt-1">{{ __('Manage your available slots and view linked booking states.') }}</p>
 				</div>
 
 				<!-- Tabs Navigation -->
-				<div class="flex border-b border-gray-200 gap-6">
-					<button
-						v-for="tab in tabs"
-						:key="tab.id"
-						@click="activeTab = tab.id"
-						class="pb-3 text-sm font-semibold relative transition-colors focus:outline-none"
-						:class="activeTab === tab.id ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'"
-					>
-						{{ tab.name }} ({{ tab.count }})
-						<div
-							v-if="activeTab === tab.id"
-							class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
-						></div>
-					</button>
+				<div class="mb-4">
+					<TabButtons
+						class="inline-block"
+						:buttons="tabButtons"
+						v-model="activeTab"
+					/>
 				</div>
 
 				<!-- Slots Grouped by Date -->
@@ -70,21 +63,21 @@
 					<div
 						v-for="date in sortedDates"
 						:key="date"
-						class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4"
+						class="border rounded-md p-5 bg-surface-white space-y-4"
 					>
-						<h3 class="font-bold text-sm text-gray-900 border-b border-gray-100 pb-2">
+						<h3 class="font-bold text-sm text-ink-gray-9 border-b pb-2">
 							{{ formatDateFriendly(date) }}
 						</h3>
 						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 							<div
 								v-for="slot in groupedSlots[date]"
 								:key="slot.name"
-								class="border border-gray-200 rounded-xl p-4 flex flex-col justify-between bg-gray-50/50 hover:bg-gray-50 hover:border-gray-300 transition-all space-y-3"
+								class="border rounded-md p-4 flex flex-col justify-between bg-surface-white hover:border-outline-gray-3 transition-colors space-y-3"
 							>
 								<div class="space-y-2">
 									<!-- Time Range & Badge -->
 									<div class="flex justify-between items-start">
-										<span class="text-sm font-bold text-gray-900">
+										<span class="text-sm font-bold text-ink-gray-9">
 											{{ formatTime(slot.start_datetime) }} - {{ formatTime(slot.end_datetime) }}
 										</span>
 										<Badge :theme="getStatusTheme(slot.status)" size="sm">
@@ -95,31 +88,31 @@
 									<!-- Linked Booking info if Booked or Locked -->
 									<div
 										v-if="getBookingForSlot(slot.name)"
-										class="border-t border-gray-100 pt-2.5 mt-2.5 space-y-1.5 text-xs text-gray-600"
+										class="border-t pt-2.5 mt-2.5 space-y-1.5 text-xs text-ink-gray-7"
 									>
 										<div class="flex justify-between">
-											<span class="text-gray-400 font-medium">{{ __('Student') }}:</span>
-											<span class="font-semibold text-gray-800">{{ getBookingForSlot(slot.name).student }}</span>
+											<span class="text-ink-gray-4 font-medium">{{ __('Student') }}:</span>
+											<span class="font-semibold text-ink-gray-8">{{ getBookingForSlot(slot.name).student }}</span>
 										</div>
 										<div class="flex justify-between">
-											<span class="text-gray-400 font-medium">{{ __('Subject') }}:</span>
-											<span class="font-semibold text-gray-800">{{ getBookingForSlot(slot.name).subject || '—' }}</span>
+											<span class="text-ink-gray-4 font-medium">{{ __('Subject') }}:</span>
+											<span class="font-semibold text-ink-gray-8">{{ getBookingForSlot(slot.name).subject || '—' }}</span>
 										</div>
 										<div class="flex justify-between">
-											<span class="text-gray-400 font-medium">{{ __('Class') }}:</span>
-											<span class="font-semibold text-gray-800">
+											<span class="text-ink-gray-4 font-medium">{{ __('Class') }}:</span>
+											<span class="font-semibold text-ink-gray-8">
 												{{ getBookingForSlot(slot.name).class || '—' }} ({{ getBookingForSlot(slot.name).board || '—' }})
 											</span>
 										</div>
 										<div class="flex justify-between" v-if="getBookingForSlot(slot.name).amount">
-											<span class="text-gray-400 font-medium">{{ __('Price') }}:</span>
-											<span class="font-semibold text-gray-800">{{ getBookingForSlot(slot.name).amount }} INR</span>
+											<span class="text-ink-gray-4 font-medium">{{ __('Price') }}:</span>
+											<span class="font-semibold text-ink-gray-8">{{ getBookingForSlot(slot.name).amount }} INR</span>
 										</div>
 									</div>
 								</div>
 
 								<!-- Action Button -->
-								<div class="flex justify-end pt-2 border-t border-gray-100/50">
+								<div class="flex justify-end pt-2 border-t mt-2">
 									<Button
 										v-if="slot.status === 'Available'"
 										@click="deleteSlot(slot.name)"
@@ -132,20 +125,20 @@
 										v-else-if="slot.status === 'Booked' && getBookingForSlot(slot.name)?.meeting_link"
 										:href="getBookingForSlot(slot.name).meeting_link"
 										target="_blank"
-										class="inline-block px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+										class="inline-block px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold transition-colors"
 									>
 										{{ __('Join Class') }}
 									</a>
-									<span v-else-if="slot.status === 'Temporarily Locked'" class="text-xs text-gray-400 italic">
+									<span v-else-if="slot.status === 'Temporarily Locked'" class="text-xs text-ink-gray-4 italic">
 										{{ __('Awaiting Payment...') }}
 									</span>
-									<span v-else class="text-xs text-gray-400 italic">—</span>
+									<span v-else class="text-xs text-ink-gray-4 italic">—</span>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-				<div v-else class="text-center py-20 text-gray-500 bg-white border border-gray-200 rounded-xl shadow-sm">
+				<div v-else class="text-center py-20 text-ink-gray-5 border rounded-md bg-surface-white">
 					{{ __('No slots found matching this status filter.') }}
 				</div>
 			</div>
@@ -154,13 +147,15 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
-import { Breadcrumbs, Button, LoadingIndicator, Badge, call, toast } from 'frappe-ui'
+import { computed, onMounted, ref } from 'vue'
+import { Breadcrumbs, Button, LoadingIndicator, Badge, TabButtons, call, toast } from 'frappe-ui'
 import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
+import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
 import { Calendar as CalendarIcon } from 'lucide-vue-next'
+import { convertToLocal } from '@/utils/timezone'
+import dayjs from '@/utils/dayjs'
 
 const dashboardStore = useTutorDashboardStore()
-const dayjs = inject('$dayjs')
 
 const regenerating = ref(false)
 const activeTab = ref('available')
@@ -173,15 +168,19 @@ const profile = computed(() => dashboardStore.dashboardData.data?.profile)
 const slots = computed(() => dashboardStore.dashboardData.data?.slots || [])
 const sessions = computed(() => dashboardStore.dashboardData.data?.sessions || [])
 
-const tabs = computed(() => {
+const breadcrumbs = computed(() => [
+	{ label: __('My Slots'), route: { name: 'SlotCalendar' } }
+])
+
+const tabButtons = computed(() => {
 	const availCount = slots.value.filter(s => s.status === 'Available' || s.status === 'Temporarily Locked').length
 	const bookedCount = slots.value.filter(s => s.status === 'Booked').length
 	const expiredCount = slots.value.filter(s => s.status === 'Expired' || s.status === 'Cancelled' || s.status === 'Blocked').length
 
 	return [
-		{ id: 'available', name: __('Available Slots'), count: availCount },
-		{ id: 'booked', name: __('Booked Slots'), count: bookedCount },
-		{ id: 'expired', name: __('Expired Slots'), count: expiredCount },
+		{ value: 'available', label: `${__('Available')} (${availCount})` },
+		{ value: 'booked', label: `${__('Booked')} (${bookedCount})` },
+		{ value: 'expired', label: `${__('Expired')} (${expiredCount})` },
 	]
 })
 
@@ -196,10 +195,12 @@ const filteredSlots = computed(() => {
 })
 
 const groupedSlots = computed(() => {
-	if (!filteredSlots.value || !dayjs) return {}
+	if (!filteredSlots.value) return {}
 	const groups = {}
 	filteredSlots.value.forEach((slot) => {
-		const localDate = dayjs.utc(slot.start_datetime).local().format('YYYY-MM-DD')
+		const d = convertToLocal(slot.start_datetime)
+		if (!d) return
+		const localDate = d.format('YYYY-MM-DD')
 		if (!groups[localDate]) {
 			groups[localDate] = []
 		}
@@ -217,12 +218,12 @@ function getBookingForSlot(slotName) {
 }
 
 function formatTime(utcTime) {
-	if (!utcTime || !dayjs) return ''
-	return dayjs.utc(utcTime).local().format('hh:mm A')
+	const localObj = convertToLocal(utcTime)
+	return localObj ? localObj.format('hh:mm A') : ''
 }
 
 function formatDateFriendly(dateStr) {
-	if (!dateStr || !dayjs) return ''
+	if (!dateStr) return ''
 	return dayjs(dateStr).format('dddd, MMMM D, YYYY')
 }
 

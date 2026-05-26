@@ -92,7 +92,9 @@ const props = defineProps({
 })
 
 function handleClick() {
-	if (router.hasRoute(props.link.to)) {
+	if (props.link.to === 'AvailabilityRules') {
+		router.push({ name: 'TutorProfile', query: { tab: 'availability' } })
+	} else if (router.hasRoute(props.link.to)) {
 		router.push({ name: props.link.to })
 	} else if (props.link.to?.includes('@')) {
 		showContactForm.value = true
@@ -106,6 +108,12 @@ function handleClick() {
 }
 
 const isActive = computed(() => {
+	if (props.link.to === 'AvailabilityRules') {
+		return router.currentRoute.value.name === 'TutorProfile' && router.currentRoute.value.query.tab === 'availability'
+	}
+	if (props.link.to === 'TutorProfile') {
+		return router.currentRoute.value.name === 'TutorProfile' && router.currentRoute.value.query.tab !== 'availability'
+	}
 	return (
 		props.link?.activeFor?.includes(router.currentRoute.value.name) ||
 		(props.activeTab && props.link?.label?.includes(props.activeTab))

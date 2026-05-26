@@ -1,15 +1,15 @@
 <template>
 	<div
 		@click="showDetails = true"
-		class="flex flex-col bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-150 cursor-pointer"
+		class="flex flex-col border rounded-md p-4 bg-surface-white hover:border-outline-gray-3 transition-colors cursor-pointer"
 	>
-		<div class="flex items-start justify-between pb-3 border-b border-gray-100">
+		<div class="flex items-start justify-between pb-3 border-b">
 			<div>
-				<h4 class="font-bold text-lg text-gray-900">
+				<h4 class="font-bold text-base text-ink-gray-9">
 					{{ session.tutor }}
 				</h4>
-				<p class="text-xs text-gray-500 mt-1.5 flex items-center">
-					<span class="font-semibold text-gray-400 mr-1.5 uppercase tracking-wider text-[10px]">{{ __('SLOT') }}:</span>
+				<p class="text-xs text-ink-gray-5 mt-1.5 flex items-center">
+					<span class="font-semibold text-ink-gray-4 mr-1.5 uppercase tracking-wider text-[10px]">{{ __('SLOT') }}:</span>
 					{{ formatSlotTime(session.start_datetime, session.end_datetime) }}
 				</p>
 			</div>
@@ -23,32 +23,32 @@
 			</div>
 		</div>
 
-		<div class="grid grid-cols-2 gap-4 text-xs py-4 border-b border-dashed border-gray-100">
+		<div class="grid grid-cols-2 gap-4 text-xs py-4 border-b">
 			<div>
-				<span class="text-gray-400 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Amount') }}</span>
-				<span class="font-bold text-gray-900">{{ session.amount }} {{ session.currency }}</span>
+				<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Amount') }}</span>
+				<span class="font-bold text-ink-gray-8">{{ session.amount }} {{ session.currency }}</span>
 			</div>
 			<div>
-				<span class="text-gray-400 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Payment') }}</span>
-				<span class="font-bold text-gray-900">{{ session.payment_status }}</span>
+				<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Payment') }}</span>
+				<span class="font-bold text-ink-gray-8">{{ session.payment_status }}</span>
 			</div>
 		</div>
 
-		<div class="flex items-center justify-between pt-4">
+		<div class="flex items-center justify-between pt-3">
 			<!-- Meeting Link -->
 			<div v-if="session.booking_status === 'Confirmed' && session.meeting_link">
 				<a
 					@click.stop
 					:href="session.meeting_link"
 					target="_blank"
-					class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-150 shadow-sm"
+					class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
 				>
 					<Video class="w-3.5 h-3.5" />
 					{{ __('Join Meeting') }}
 				</a>
 			</div>
 			<div v-else-if="session.booking_status === 'Confirmed'">
-				<span class="text-xs text-gray-500 italic">
+				<span class="text-xs text-ink-gray-5 italic">
 					{{ __('Generating meeting link...') }}
 				</span>
 			</div>
@@ -56,41 +56,15 @@
 				<Button
 					@click.stop="$emit('retryPayment', session.name)"
 					variant="solid"
-					class="rounded-lg text-xs px-4 py-2"
+					class="text-xs px-4 py-2"
 				>
 					{{ __('Pay Now') }}
 				</Button>
 			</div>
 			<div v-else>
-				<span class="text-xs text-gray-400 uppercase tracking-wider text-[10px]">{{ __('No Active Meeting') }}</span>
-			</div>
-
-			<!-- AI Summary Action -->
-			<div v-if="session.booking_status === 'Completed' && session.ai_summary">
-				<Button
-					@click.stop="showSummary = true"
-					variant="outline"
-					class="rounded-lg text-xs px-4 py-2"
-				>
-					{{ __('AI Feedback') }}
-				</Button>
+				<span class="text-xs text-ink-gray-4 uppercase tracking-wider text-[10px]">{{ __('No Active Meeting') }}</span>
 			</div>
 		</div>
-
-		<!-- AI Summary Modal -->
-		<Dialog
-			v-model="showSummary"
-			:options="{
-				title: `${__('AI Session Summary')} - ${session.tutor}`,
-				size: 'lg',
-			}"
-		>
-			<template #body-content>
-				<div class="prose prose-sm max-w-none text-gray-800 p-4 bg-gray-50 rounded-lg border border-gray-150">
-					<p class="whitespace-pre-wrap leading-relaxed">{{ session.ai_summary }}</p>
-				</div>
-			</template>
-		</Dialog>
 
 		<!-- Booking Details Dialog -->
 		<Dialog
@@ -101,12 +75,12 @@
 			}"
 		>
 			<template #body-content>
-				<div class="space-y-4 text-sm text-gray-700 p-1">
+				<div class="space-y-4 text-sm text-ink-gray-7 p-1">
 					<!-- Tutor and Status Header -->
-					<div class="flex justify-between items-start border-b border-gray-100 pb-3">
+					<div class="flex justify-between items-start border-b pb-3">
 						<div>
-							<h4 class="font-bold text-base text-gray-950">{{ session.tutor }}</h4>
-							<p class="text-xs text-gray-400 mt-0.5">ID: {{ session.name }}</p>
+							<h4 class="font-bold text-base text-ink-gray-9">{{ session.tutor }}</h4>
+							<p class="text-xs text-ink-gray-4 mt-0.5">ID: {{ session.name }}</p>
 						</div>
 						<span class="border px-2.5 py-0.5 text-xs rounded-full font-semibold" :class="statusClasses">
 							{{ session.booking_status }}
@@ -116,35 +90,35 @@
 					<!-- Details Grid -->
 					<div class="grid grid-cols-2 gap-4 py-2">
 						<div class="col-span-2">
-							<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">{{ __('Date & Time') }}</span>
-							<span class="font-medium text-gray-900 block leading-relaxed">
+							<span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-wider block mb-0.5">{{ __('Date & Time') }}</span>
+							<span class="font-medium text-ink-gray-9 block leading-relaxed">
 								{{ formatSlotTime(session.start_datetime, session.end_datetime) }}
 							</span>
 						</div>
 						<div>
-							<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">{{ __('Subject') }}</span>
-							<span class="font-medium text-gray-900 block">{{ session.subject || 'N/A' }}</span>
+							<span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-wider block mb-0.5">{{ __('Subject') }}</span>
+							<span class="font-medium text-ink-gray-9 block">{{ session.subject || 'N/A' }}</span>
 						</div>
 						<div>
-							<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">{{ __('Board') }}</span>
-							<span class="font-medium text-gray-900 block">{{ session.board || 'N/A' }}</span>
+							<span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-wider block mb-0.5">{{ __('Board') }}</span>
+							<span class="font-medium text-ink-gray-9 block">{{ session.board || 'N/A' }}</span>
 						</div>
 						<div>
-							<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">{{ __('Class') }}</span>
-							<span class="font-medium text-gray-900 block">{{ session.class || 'N/A' }}</span>
+							<span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-wider block mb-0.5">{{ __('Class') }}</span>
+							<span class="font-medium text-ink-gray-9 block">{{ session.class || 'N/A' }}</span>
 						</div>
 						<div>
-							<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">{{ __('Amount Paid') }}</span>
-							<span class="font-medium text-gray-900 block">{{ session.amount }} {{ session.currency }}</span>
+							<span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-wider block mb-0.5">{{ __('Amount Paid') }}</span>
+							<span class="font-medium text-ink-gray-9 block">{{ session.amount }} {{ session.currency }}</span>
 						</div>
 						<div class="col-span-2">
-							<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">{{ __('Payment Status') }}</span>
-							<span class="font-medium text-gray-900 block">{{ session.payment_status }}</span>
+							<span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-wider block mb-0.5">{{ __('Payment Status') }}</span>
+							<span class="font-medium text-ink-gray-9 block">{{ session.payment_status }}</span>
 						</div>
 					</div>
 
 					<!-- Meeting Link Section -->
-					<div v-if="session.booking_status === 'Confirmed'" class="bg-blue-50 border border-blue-100 rounded-lg p-3 mt-3">
+					<div v-if="session.booking_status === 'Confirmed'" class="bg-blue-50 border border-blue-100 rounded-md p-3 mt-3">
 						<span class="text-xs font-semibold text-blue-900 uppercase tracking-wider block mb-1">{{ __('Meeting Room') }}</span>
 						<div v-if="session.meeting_link" class="flex items-center justify-between">
 							<span class="text-xs text-blue-800 break-all select-all font-mono mr-2">{{ session.meeting_link }}</span>
@@ -163,14 +137,14 @@
 					</div>
 
 					<!-- Audit Details Section -->
-					<div class="border-t border-gray-100 pt-3 text-xs text-gray-400 flex flex-col gap-1">
+					<div class="border-t pt-3 text-xs text-ink-gray-4 flex flex-col gap-1">
 						<div class="flex justify-between">
 							<span>{{ __('Locked At') }}</span>
-							<span>{{ session.locked_at ? dayjs(session.locked_at).format('DD MMM YYYY, hh:mm A') : 'N/A' }}</span>
+							<span>{{ session.locked_at ? formatAuditTime(session.locked_at) : 'N/A' }}</span>
 						</div>
 						<div v-if="session.confirmed_at" class="flex justify-between">
 							<span>{{ __('Confirmed At') }}</span>
-							<span>{{ dayjs(session.confirmed_at).format('DD MMM YYYY, hh:mm A') }}</span>
+							<span>{{ formatAuditTime(session.confirmed_at) }}</span>
 						</div>
 					</div>
 				</div>
@@ -193,8 +167,8 @@ const props = defineProps({
 
 defineEmits(['retryPayment'])
 
-const dayjs = inject('$dayjs')
-const showSummary = ref(false)
+import { formatLocal, formatTimeRangeLocal } from '@/utils/timezone'
+
 const showDetails = ref(false)
 
 const statusClasses = computed(() => {
@@ -214,9 +188,10 @@ const statusClasses = computed(() => {
 })
 
 function formatSlotTime(start, end) {
-	if (!start || !end || !dayjs) return 'N/A'
-	const s = dayjs(start)
-	const e = dayjs(end)
-	return `${s.format('DD MMM YYYY, hh:mm A')} - ${e.format('hh:mm A')}`
+	return formatTimeRangeLocal(start, end, 'DD MMM YYYY, hh:mm A', 'hh:mm A')
+}
+
+function formatAuditTime(dateTimeStr) {
+	return formatLocal(dateTimeStr, 'DD MMM YYYY, hh:mm A')
 }
 </script>

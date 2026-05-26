@@ -96,6 +96,7 @@ import { systemSettings } from '@/resources/bookTutor'
 import SlotPicker from './SlotPicker.vue'
 import RazorpayCheckout from './RazorpayCheckout.vue'
 import { useRouter } from 'vue-router'
+import { formatTimeRangeLocal } from '@/utils/timezone'
 
 const props = defineProps({
 	tutor: { type: Object, required: true },
@@ -162,17 +163,8 @@ function onSelectSlot(slot) {
 	selectedSlot.value = slot
 }
 
-/**
- * Format slot time converted to the system timezone.
- * dayjs is already injected globally in the LMS frontend.
- */
 function formatSlotTime(start, end) {
-	if (!start || !end || !dayjs) return ''
-	const tz = systemTimezone.value
-	// Convert UTC datetime strings to system timezone
-	const s = dayjs.utc ? dayjs.utc(start).tz(tz) : dayjs(start)
-	const e = dayjs.utc ? dayjs.utc(end).tz(tz) : dayjs(end)
-	return `${s.format('ddd, DD MMM YYYY, hh:mm A')} – ${e.format('hh:mm A')} (${tz})`
+	return formatTimeRangeLocal(start, end)
 }
 
 async function startBooking() {

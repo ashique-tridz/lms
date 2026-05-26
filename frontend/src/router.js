@@ -259,7 +259,7 @@ const routes = [
 	{
 		path: '/sessions/history',
 		name: 'SessionHistory',
-		component: () => import('@/pages/cz/SessionHistory.vue')
+		redirect: { name: 'Sessions' }
 	},
 	{
 		path: '/tutors',
@@ -279,7 +279,7 @@ const routes = [
 	{
 		path: '/tutor/availability',
 		name: 'AvailabilityRules',
-		component: () => import('@/pages/cz/AvailabilityRules.vue')
+		redirect: { name: 'TutorProfile', query: { tab: 'availability' } }
 	},
 	{
 		path: '/tutor/slots',
