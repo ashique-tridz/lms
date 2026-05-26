@@ -1,6 +1,6 @@
 <template>
 	<form @submit.prevent="submitForm" class="space-y-6 text-gray-800">
-		<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+		<div class="grid grid-cols-1 gap-4">
 			<div>
 				<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{{ __('Weekday') }}</label>
 				<select
@@ -13,19 +13,6 @@
 						{{ day }}
 					</option>
 				</select>
-			</div>
-
-			<div>
-				<label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{{ __('Slot Duration (minutes)') }}</label>
-				<input
-					v-model.number="form.slot_duration"
-					type="number"
-					min="15"
-					max="240"
-					required
-					class="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-white text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-					placeholder="60"
-				/>
 			</div>
 		</div>
 

@@ -403,7 +403,7 @@
 									</div>
 									<div>
 										<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Duration') }}</span>
-										<span class="font-semibold text-ink-gray-8">{{ rule.slot_duration }} {{ __('mins') }}</span>
+										<span class="font-semibold text-ink-gray-8">{{ settings_slot_duration }} {{ __('mins') }}</span>
 									</div>
 									<div class="col-span-2">
 										<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Time Zone') }}</span>
@@ -412,22 +412,25 @@
 								</div>
 							</div>
 
-							<!-- Actions -->
-							<div class="flex justify-end gap-2.5 pt-3 border-t mt-4">
-								<Button
-									@click="openEditModal(rule)"
-									variant="outline"
-									class="text-xs font-semibold"
-								>
-									{{ __('Edit') }}
-								</Button>
-								<Button
-									@click="deleteRule(rule.name)"
-									variant="outline"
-									class="text-xs font-semibold text-red-600 hover:text-red-700"
-								>
-									{{ __('Delete') }}
-								</Button>
+							<!-- Actions: Draft rules show Edit + Delete; Submitted rules show read-only indicator -->
+							<div class="flex justify-end items-center gap-2.5 pt-3 border-t mt-4">
+								<!-- Draft-only actions -->
+								<template v-if="rule.docstatus === 0">
+									<Button
+										@click="openEditModal(rule)"
+										variant="outline"
+										class="text-xs font-semibold"
+									>
+										{{ __('Edit') }}
+									</Button>
+									<Button
+										@click="deleteRule(rule.name)"
+										variant="outline"
+										class="text-xs font-semibold text-red-600 hover:text-red-700"
+									>
+										{{ __('Delete') }}
+									</Button>
+								</template>
 							</div>
 						</div>
 					</div>
@@ -446,13 +449,25 @@
 
 				<!-- TAB: Settings -->
 				<div v-if="activeTab === 'settings'" class="space-y-6 max-w-3xl">
+					<!-- Verified lock notice -->
+					<div
+						v-if="isReadOnly"
+						class="p-4 bg-surface-gray-2 border rounded-md text-sm text-ink-gray-7 flex items-start gap-2.5"
+					>
+						<Lock class="w-4 h-4 mt-0.5 shrink-0 text-ink-gray-5" />
+						<div>
+							<span class="font-semibold text-ink-gray-9">{{ __('Settings locked') }}</span>.
+							{{ __('Profile is verified. Contact administrator to change settings.') }}
+						</div>
+					</div>
+
 					<form @submit.prevent="saveProfile" class="space-y-5">
 						<div class="border rounded-md p-5 bg-surface-white space-y-4">
 							<h3 class="text-sm font-semibold text-ink-gray-9">{{ __('Marketplace Settings') }}</h3>
 							
 							<div class="flex items-start justify-between">
 								<div class="space-y-0.5">
-									<label class="text-sm font-medium text-ink-gray-9 select-none cursor-pointer" for="activeToggle">
+									<label class="text-sm font-medium text-ink-gray-9 select-none" :class="{ 'cursor-pointer': !isReadOnly }" for="activeToggle">
 										{{ __('Active Status') }}
 									</label>
 									<p class="text-xs text-ink-gray-5">
@@ -463,7 +478,8 @@
 									id="activeToggle"
 									v-model="form.active"
 									type="checkbox"
-									class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+									:disabled="isReadOnly"
+									class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 disabled:opacity-60 disabled:cursor-not-allowed"
 								/>
 							</div>
 
@@ -481,8 +497,8 @@
 							</div>
 						</div>
 
-						<!-- Submit -->
-						<div class="flex justify-end pt-4 border-t">
+						<!-- Submit — hidden when verified -->
+						<div v-if="!isReadOnly" class="flex justify-end pt-4 border-t">
 							<Button
 								:loading="saving"
 								variant="solid"
@@ -590,6 +606,9 @@ const form = reactive({
 
 const profile = computed(() => dashboardStore.dashboardData.data?.profile)
 const rules = computed(() => dashboardStore.dashboardData.data?.rules || [])
+const settings_slot_duration = computed(() => {
+	return dashboardStore.dashboardData.data?.settings_slot_duration || 30
+})
 
 const isReadOnly = computed(() => {
 	return profile.value?.verification_status === 'Verified'
@@ -790,17 +809,14 @@ async function handleSave(formData) {
 }
 
 async function deleteRule(name) {
-	if (!confirm(__('Are you sure you want to delete this rule?'))) return
+	if (!confirm(__('Are you sure you want to delete this draft rule?'))) return
 	try {
-		await call('frappe.client.cancel', {
-			doctype: 'Tutor Availability Rule',
-			name,
-		})
+		await call('smart_learning.api.tutor_api.delete_availability_rule', { rule_name: name })
 		toast({ title: __('Rule deleted successfully.'), variant: 'success' })
 		await dashboardStore.dashboardData.submit()
 	} catch (e) {
 		console.error('Failed to delete rule:', e)
-		toast({ title: __('Failed to delete rule.'), variant: 'error' })
+		toast({ title: e.message || __('Failed to delete rule.'), variant: 'error' })
 	}
 }
 </script>

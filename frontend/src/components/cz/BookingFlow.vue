@@ -72,7 +72,7 @@
 				</p>
 				<p class="text-xs text-blue-800">
 					<span class="font-semibold text-blue-700 mr-1 uppercase">{{ __('Price') }}:</span>
-					{{ tutor.hourly_rate || '—' }} {{ currency }}
+					{{ tutor.hourly_rate || TEST_BOOKING_AMOUNT }} {{ currency }}
 				</p>
 			</div>
 
@@ -97,6 +97,9 @@ import SlotPicker from './SlotPicker.vue'
 import RazorpayCheckout from './RazorpayCheckout.vue'
 import { useRouter } from 'vue-router'
 import { formatTimeRangeLocal } from '@/utils/timezone'
+
+// Temporary: centralized test booking amount — restore to tutor.hourly_rate when live
+const TEST_BOOKING_AMOUNT = 500
 
 const props = defineProps({
 	tutor: { type: Object, required: true },
@@ -177,7 +180,7 @@ async function startBooking() {
 		const res = await bookingStore.initiateBooking({
 			slot: selectedSlot.value.name,
 			tutor: props.tutor.name,
-			amount: props.tutor.hourly_rate || 500,
+			amount: TEST_BOOKING_AMOUNT,
 			currency: currency.value,
 			subject: filters.subject,
 			board: filters.board,
