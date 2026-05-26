@@ -1,47 +1,46 @@
 <template>
-	<div class="min-h-screen bg-surface-gray-1">
-		<header class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5">
-			<Breadcrumbs class="h-7" :items="[{ label: __('Sessions'), route: { name: 'Sessions' } }]" />
-			<router-link :to="{ name: 'BookSession' }">
-				<Button variant="solid" class="text-xs font-semibold">
-					{{ __('Book a Tutor') }}
-				</Button>
-			</router-link>
-		</header>
+	<div>
+		<LayoutHeader>
+			<template #left-header>
+				<Breadcrumbs class="h-7" :items="breadcrumbs" />
+			</template>
+			<template #right-header>
+				<router-link :to="{ name: 'BookSession' }">
+					<Button variant="solid" class="text-xs font-semibold">
+						{{ __('Book a Tutor') }}
+					</Button>
+				</router-link>
+			</template>
+		</LayoutHeader>
 
-		<div class="max-w-6xl mx-auto p-5 sm:p-8 space-y-8">
-			<!-- Upcoming Sessions -->
-			<div class="space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900">{{ __('Upcoming Sessions') }}</h2>
-				<div v-if="upcomingSessions.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+		<div class="mx-auto flex min-h-0 w-full flex-1 flex-col p-5 max-w-6xl">
+			<div class="space-y-6">
+				<div class="border-b pb-4">
+					<h2 class="text-xl font-semibold text-ink-gray-9">{{ __('My Booked Sessions') }}</h2>
+					<p class="text-sm text-ink-gray-5 mt-1">{{ __('View and manage your live tutoring sessions.') }}</p>
+				</div>
+
+				<!-- Section Tabs -->
+				<div class="mb-4">
+					<TabButtons
+						class="inline-block"
+						:buttons="tabButtons"
+						v-model="activeTab"
+					/>
+				</div>
+
+				<!-- Sessions List -->
+				<div v-if="filteredSessions.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<SessionCard
-						v-for="session in upcomingSessions"
+						v-for="session in filteredSessions"
 						:key="session.name"
 						:session="session"
 						@retryPayment="handleRetryPayment"
 					/>
 				</div>
-				<div v-else class="text-sm text-gray-500 py-8 text-center bg-white border border-dashed border-gray-200 rounded-xl">
-					{{ __('No upcoming sessions found.') }}
-				</div>
-			</div>
 
-			<!-- Past Sessions -->
-			<div class="space-y-4">
-				<div class="flex justify-between items-center">
-					<h2 class="text-lg font-semibold text-gray-900">{{ __('Past Sessions') }}</h2>
-					<router-link
-						:to="{ name: 'SessionHistory' }"
-						class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-					>
-						{{ __('View Full History') }}
-					</router-link>
-				</div>
-				<div v-if="pastSessions.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-					<SessionCard v-for="session in pastSessions" :key="session.name" :session="session" />
-				</div>
-				<div v-else class="text-sm text-gray-500 py-8 text-center bg-white border border-dashed border-gray-200 rounded-xl">
-					{{ __('No past sessions found.') }}
+				<div v-else class="text-center py-20 text-ink-gray-5 border rounded-md bg-surface-white">
+					{{ __('No sessions found matching this status filter.') }}
 				</div>
 			</div>
 		</div>
@@ -57,37 +56,52 @@
 
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue'
-import { Breadcrumbs, Button } from 'frappe-ui'
+import { Breadcrumbs, Button, TabButtons, LoadingIndicator } from 'frappe-ui'
 import { useSessionStore } from '@/stores/useSessionStore'
 import { useBookingStore } from '@/stores/useBookingStore'
 import SessionCard from '@/components/cz/SessionCard.vue'
 import RazorpayCheckout from '@/components/cz/RazorpayCheckout.vue'
+import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
 
-const dayjs = inject('$dayjs')
 const sessionStore = useSessionStore()
 const bookingStore = useBookingStore()
 
 const checkoutDetails = ref(null)
+const activeTab = ref('upcoming')
 
 onMounted(() => {
 	sessionStore.fetchHistory()
 })
 
-const upcomingSessions = computed(() => {
-	if (!sessionStore.sessions) return []
-	return sessionStore.sessions.filter(
-		(s) => s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment'
-	)
+const breadcrumbs = computed(() => [
+	{ label: __('Sessions'), route: { name: 'Sessions' } }
+])
+
+const tabButtons = computed(() => {
+	const upcoming = sessionStore.sessions.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment' || s.booking_status === 'Payment Success').length
+	const completed = sessionStore.sessions.filter(s => s.booking_status === 'Completed').length
+	const cancelled = sessionStore.sessions.filter(s => s.booking_status === 'Cancelled').length
+	const expired = sessionStore.sessions.filter(s => s.booking_status === 'Expired' || s.booking_status === 'Failed').length
+
+	return [
+		{ value: 'upcoming', label: `${__('Upcoming')} (${upcoming})` },
+		{ value: 'completed', label: `${__('Completed')} (${completed})` },
+		{ value: 'cancelled', label: `${__('Cancelled')} (${cancelled})` },
+		{ value: 'expired', label: `${__('Expired')} (${expired})` },
+	]
 })
 
-const pastSessions = computed(() => {
+const filteredSessions = computed(() => {
 	if (!sessionStore.sessions) return []
-	return sessionStore.sessions.filter(
-		(s) =>
-			s.booking_status === 'Completed' ||
-			s.booking_status === 'Cancelled' ||
-			s.booking_status === 'Expired'
-	)
+	if (activeTab.value === 'upcoming') {
+		return sessionStore.sessions.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment' || s.booking_status === 'Payment Success')
+	} else if (activeTab.value === 'completed') {
+		return sessionStore.sessions.filter(s => s.booking_status === 'Completed')
+	} else if (activeTab.value === 'cancelled') {
+		return sessionStore.sessions.filter(s => s.booking_status === 'Cancelled')
+	} else {
+		return sessionStore.sessions.filter(s => s.booking_status === 'Expired' || s.booking_status === 'Failed')
+	}
 })
 
 async function handleRetryPayment(bookingName) {

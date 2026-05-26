@@ -1,166 +1,580 @@
 <template>
-	<div class="min-h-screen bg-surface-gray-1">
-		<header
-			class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5">
-			<Breadcrumbs class="h-7" :items="[{ label: __('Tutor Profile'), route: { name: 'TutorProfile' } }]" />
-		</header>
+	<div>
+		<LayoutHeader>
+			<template #left-header>
+				<Breadcrumbs class="h-7" :items="breadcrumbs" />
+			</template>
+		</LayoutHeader>
 
-		<div class="max-w-3xl mx-auto p-5 sm:p-8">
-			<div v-if="loading" class="flex justify-center py-20">
+		<div class="mx-auto flex min-h-0 w-full flex-1 flex-col p-5 max-w-5xl">
+			<!-- Loading State -->
+			<div v-if="dashboardStore.dashboardData.loading || loadingOptions" class="flex justify-center py-20">
 				<LoadingIndicator class="w-10 h-10 text-gray-400" />
 			</div>
 
-			<div v-else class="bg-surface-cards border border-outline-gray-2 rounded-xl p-6 space-y-6 shadow-sm">
-				<div>
-					<h2 class="text-lg font-semibold text-ink-gray-9">{{ __('Tutor Profile Details') }}</h2>
-					<p class="text-sm text-ink-gray-5 mt-1">{{ __('Manage your tutoring profile details visible to students.') }}</p>
+			<!-- Empty State: No Profile and Not Creating -->
+			<div v-else-if="!profile && !isCreating" class="text-center py-20 border rounded-md space-y-4 bg-surface-white">
+				<div class="flex flex-col items-center justify-center space-y-2">
+					<div class="p-3 bg-surface-gray-2 rounded-full">
+						<User class="w-8 h-8 text-ink-gray-5 stroke-1.5" />
+					</div>
+					<h3 class="text-lg font-medium text-ink-gray-9">{{ __('No Tutor Profile linked to your account') }}</h3>
+					<p class="text-sm text-ink-gray-7 max-w-sm">
+						{{ __('Create a tutor profile to start configuring availability rules and taking bookings.') }}
+					</p>
+				</div>
+				<Button
+					@click="isCreating = true"
+					variant="solid"
+					class="font-semibold text-xs mt-2"
+				>
+					{{ __('Create Tutor Profile') }}
+				</Button>
+			</div>
+
+			<!-- Profile Edit/View Form -->
+			<div v-else class="space-y-6 bg-surface-white">
+				<!-- Header Notice if Profile is Verified -->
+				<div class="flex justify-between items-start border-b pb-4">
+					<div>
+						<h2 class="text-xl font-semibold text-ink-gray-9">{{ form.tutor_name || __('Tutor Profile') }}</h2>
+						<p class="text-sm text-ink-gray-5 mt-1">{{ __('Manage your tutoring profile details visible to students.') }}</p>
+					</div>
+					<Badge
+						v-if="profile"
+						:label="profile.verification_status"
+						:theme="profile.verification_status === 'Verified' ? 'green' : 'gray'"
+						size="md"
+					/>
 				</div>
 
-				<form @submit.prevent="saveProfile" class="space-y-5">
-					<!-- Basic Info -->
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						<div>
-							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Display Name') }}</label>
-							<input v-model="form.tutor_name" :disabled="isEdit" type="text" required
-								placeholder="e.g. Dr. John Doe"
-								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed" />
-						</div>
-						<div>
-							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Timezone') }}</label>
-							<input v-model="form.timezone" type="text" required placeholder="Asia/Kolkata"
-								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-						</div>
-					</div>
-
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						<div>
-							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Years of Experience') }}</label>
-							<input v-model.number="form.years_of_experience" type="number" min="0" required
-								placeholder="e.g. 5"
-								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-						</div>
-						<div>
-							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Hourly Rate (INR)') }}</label>
-							<input v-model.number="form.hourly_rate" type="number" min="1" required
-								placeholder="e.g. 500"
-								class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-						</div>
-					</div>
-
+				<!-- Lock Notice -->
+				<div
+					v-if="profile && profile.verification_status === 'Verified'"
+					class="p-4 bg-surface-gray-2 border rounded-md text-sm text-ink-gray-7 flex items-start gap-2.5"
+				>
+					<Lock class="w-4 h-4 mt-0.5 shrink-0 text-ink-gray-5" />
 					<div>
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Biography') }}</label>
-						<textarea v-model="form.bio" rows="4"
-							placeholder="Write a short summary about your background, credentials and tutoring approach..."
-							class="w-full text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none" />
+						<span class="font-semibold text-ink-gray-9">{{ __('Profile verified') }}</span>. 
+						{{ __('Contact administrator to modify profile details.') }}
 					</div>
+				</div>
 
-					<!-- Subjects -->
-					<div>
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Subjects Taught') }}</label>
-						<div
-							class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-1 p-4 rounded-lg border border-outline-gray-2">
-							<label v-for="sub in allSubjects" :key="sub"
-								class="flex items-center gap-2 text-sm text-ink-gray-8 cursor-pointer select-none">
-								<input type="checkbox" :value="sub" v-model="selectedSubjects"
-									class="rounded border-outline-gray-2 text-blue-600 focus:ring-blue-500" />
-								{{ sub }}
-							</label>
-							<p v-if="!allSubjects.length" class="text-xs text-ink-gray-4 col-span-full">{{ __('No subjects found.') }}</p>
-						</div>
-					</div>
+				<!-- Tabs Navigation -->
+				<div class="mb-4">
+					<TabButtons
+						class="inline-block"
+						:buttons="profileTabs"
+						v-model="activeTab"
+					/>
+				</div>
 
-					<!-- Boards -->
-					<div>
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Boards Supported') }}</label>
-						<div
-							class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-1 p-4 rounded-lg border border-outline-gray-2">
-							<label v-for="brd in allBoards" :key="brd"
-								class="flex items-center gap-2 text-sm text-ink-gray-8 cursor-pointer select-none">
-								<input type="checkbox" :value="brd" v-model="selectedBoards"
-									class="rounded border-outline-gray-2 text-blue-600 focus:ring-blue-500" />
-								{{ brd }}
-							</label>
-							<p v-if="!allBoards.length" class="text-xs text-ink-gray-4 col-span-full">{{ __('No boards found.') }}</p>
-						</div>
-					</div>
-
-					<!-- Classes -->
-					<div>
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Classes Target') }}</label>
-						<div
-							class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-1 p-4 rounded-lg border border-outline-gray-2">
-							<label v-for="cls in allClasses" :key="cls"
-								class="flex items-center gap-2 text-sm text-ink-gray-8 cursor-pointer select-none">
-								<input type="checkbox" :value="cls" v-model="selectedClasses"
-									class="rounded border-outline-gray-2 text-blue-600 focus:ring-blue-500" />
-								{{ cls }}
-							</label>
-							<p v-if="!allClasses.length" class="text-xs text-ink-gray-4 col-span-full">{{ __('No classes found.') }}</p>
-						</div>
-					</div>
-
-					<!-- Qualifications -->
-					<div class="space-y-3 pt-2 border-t border-outline-gray-1">
-						<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mt-2">{{ __('Qualifications') }}</label>
-
-						<div v-if="qualifications.length" class="space-y-2">
-							<div v-for="(q, idx) in qualifications" :key="idx"
-								class="flex items-center justify-between bg-surface-gray-1 border border-outline-gray-2 rounded-lg px-4 py-3 text-sm text-ink-gray-8">
-								<div class="flex gap-3 items-center">
-									<span class="font-semibold">{{ q.degree }}</span>
-									<span class="text-ink-gray-4">·</span>
-									<span>{{ q.institution }}</span>
-									<span class="text-ink-gray-4">·</span>
-									<span class="font-medium text-ink-gray-6">{{ q.year }}</span>
-								</div>
-								<button type="button" @click="removeQualification(idx)"
-									class="text-xs font-semibold text-red-500 hover:text-red-600 hover:underline ml-4 shrink-0">
-									{{ __('Remove') }}
-								</button>
+				<!-- TAB: Overview -->
+				<div v-if="activeTab === 'overview'" class="space-y-6 max-w-3xl">
+					<form @submit.prevent="saveProfile" class="space-y-5">
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Display Name') }}</label>
+								<input
+									v-model="form.tutor_name"
+									:disabled="isReadOnly"
+									type="text"
+									required
+									placeholder="e.g. Dr. John Doe"
+									class="w-full text-sm border border-outline-gray-2 rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+								/>
+							</div>
+							<div>
+								<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Timezone') }}</label>
+								<select
+									v-model="form.timezone"
+									:disabled="isReadOnly"
+									required
+									class="w-full text-sm border border-outline-gray-2 rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+								>
+									<option v-for="tz in timezoneOptions" :key="tz" :value="tz">{{ tz }}</option>
+								</select>
 							</div>
 						</div>
-						<div v-else
-							class="text-sm text-ink-gray-4 bg-surface-gray-1 border border-dashed border-outline-gray-2 rounded-lg p-4 text-center">
-							{{ __('No qualifications added yet. At least one is required.') }}
+
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Years of Experience') }}</label>
+								<input
+									v-model.number="form.years_of_experience"
+									:disabled="isReadOnly"
+									type="number"
+									min="0"
+									required
+									placeholder="e.g. 5"
+									class="w-full text-sm border border-outline-gray-2 rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+								/>
+							</div>
+							<div>
+								<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Hourly Rate (INR)') }}</label>
+								<input
+									v-model.number="form.hourly_rate"
+									:disabled="isReadOnly"
+									type="number"
+									min="1"
+									required
+									placeholder="e.g. 500"
+									class="w-full text-sm border border-outline-gray-2 rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+								/>
+							</div>
 						</div>
 
-						<!-- Add row -->
-						<div class="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
-							<input v-model="newQual.degree" type="text" placeholder="Degree"
-								class="text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500" />
-							<input v-model="newQual.institution" type="text" placeholder="Institution"
-								class="text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500" />
-							<input v-model.number="newQual.year" type="number" placeholder="Year"
-								class="text-sm border border-outline-gray-2 rounded-lg p-2.5 bg-surface-gray-1 text-ink-gray-8 focus:outline-none focus:border-blue-500" />
-							<Button type="button" variant="outline" @click="addQualification"
-								class="rounded-lg text-xs font-semibold">
-								{{ __('Add') }}
+						<div>
+							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Biography') }}</label>
+							<textarea
+								v-model="form.bio"
+								:disabled="isReadOnly"
+								rows="4"
+								placeholder="Write a short summary about your background, credentials and tutoring approach..."
+								class="w-full text-sm border border-outline-gray-2 rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+							/>
+						</div>
+
+						<!-- Submit -->
+						<div v-if="!isReadOnly" class="flex justify-end pt-4 border-t">
+							<Button
+								:loading="saving"
+								variant="solid"
+								type="submit"
+								class="rounded-md text-xs font-semibold px-5"
+							>
+								{{ profile ? __('Update Profile') : __('Create Profile') }}
 							</Button>
 						</div>
-					</div>
+					</form>
+				</div>
 
-					<!-- Submit -->
-					<div class="flex justify-end pt-4 border-t border-outline-gray-1">
-						<Button :loading="saving" variant="solid" type="submit"
-							class="rounded-lg text-xs font-semibold px-5">
-							{{ isEdit ? __('Update Profile') : __('Create Profile') }}
+				<!-- TAB: Subjects -->
+				<div v-if="activeTab === 'subjects'" class="space-y-6 max-w-3xl">
+					<form @submit.prevent="saveProfile" class="space-y-5">
+						<!-- Subjects -->
+						<div>
+							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Subjects Taught') }}</label>
+							<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-2 p-4 rounded-md border">
+								<label
+									v-for="sub in allSubjects"
+									:key="sub"
+									class="flex items-center gap-2 text-sm text-ink-gray-7 cursor-pointer select-none"
+								>
+									<input
+										type="checkbox"
+										:value="sub"
+										v-model="selectedSubjects"
+										:disabled="isReadOnly"
+										class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+									/>
+									{{ sub }}
+								</label>
+								<p v-if="!allSubjects.length" class="text-xs text-ink-gray-5 col-span-full">{{ __('No subjects found.') }}</p>
+							</div>
+						</div>
+
+						<!-- Boards -->
+						<div>
+							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Boards Supported') }}</label>
+							<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-2 p-4 rounded-md border">
+								<label
+									v-for="brd in allBoards"
+									:key="brd"
+									class="flex items-center gap-2 text-sm text-ink-gray-7 cursor-pointer select-none"
+								>
+									<input
+										type="checkbox"
+										:value="brd"
+										v-model="selectedBoards"
+										:disabled="isReadOnly"
+										class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+									/>
+									{{ brd }}
+								</label>
+								<p v-if="!allBoards.length" class="text-xs text-ink-gray-5 col-span-full">{{ __('No boards found.') }}</p>
+							</div>
+						</div>
+
+						<!-- Classes -->
+						<div>
+							<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-2">{{ __('Classes Target') }}</label>
+							<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-gray-2 p-4 rounded-md border">
+								<label
+									v-for="cls in allClasses"
+									:key="cls"
+									class="flex items-center gap-2 text-sm text-ink-gray-7 cursor-pointer select-none"
+								>
+									<input
+										type="checkbox"
+										:value="cls"
+										v-model="selectedClasses"
+										:disabled="isReadOnly"
+										class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+									/>
+									{{ cls }}
+								</label>
+								<p v-if="!allClasses.length" class="text-xs text-ink-gray-5 col-span-full">{{ __('No classes found.') }}</p>
+							</div>
+						</div>
+
+						<!-- Submit -->
+						<div v-if="!isReadOnly" class="flex justify-end pt-4 border-t">
+							<Button
+								:loading="saving"
+								variant="solid"
+								type="submit"
+								class="rounded-md text-xs font-semibold px-5"
+							>
+								{{ __('Update Subjects') }}
+							</Button>
+						</div>
+					</form>
+				</div>
+
+				<!-- TAB: Qualifications -->
+				<div v-if="activeTab === 'qualifications'" class="space-y-6 max-w-3xl">
+					<form @submit.prevent="saveProfile" class="space-y-5">
+						<div class="space-y-4">
+							<div v-if="qualifications.length" class="space-y-2.5">
+								<div
+									v-for="(q, idx) in qualifications"
+									:key="idx"
+									class="flex items-start justify-between border rounded-md px-4 py-3 text-sm text-ink-gray-7 bg-surface-white hover:border-outline-gray-3"
+								>
+									<div class="space-y-1">
+										<div class="flex flex-wrap gap-2 items-center text-ink-gray-9">
+											<span class="font-semibold">{{ q.qualification }}</span>
+											<span class="text-ink-gray-4">·</span>
+											<span>{{ q.institution }}</span>
+											<span class="text-ink-gray-4">·</span>
+											<span class="font-medium text-ink-gray-5">{{ q.year_of_passing }}</span>
+										</div>
+										<div class="text-xs text-ink-gray-5 flex flex-wrap gap-x-3 gap-y-1">
+											<span v-if="q.level"><strong>Level:</strong> {{ q.level }}</span>
+											<span v-if="q.class_per"><strong>Class/Pct:</strong> {{ q.class_per }}</span>
+											<span v-if="q.maj_opt_subj"><strong>Subjects:</strong> {{ q.maj_opt_subj }}</span>
+										</div>
+									</div>
+									<button
+										v-if="!isReadOnly"
+										type="button"
+										@click="removeQualification(idx)"
+										class="text-xs font-semibold text-red-500 hover:text-red-600 hover:underline ml-4 shrink-0 mt-0.5"
+									>
+										{{ __('Remove') }}
+									</button>
+								</div>
+							</div>
+							<div
+								v-else
+								class="text-sm text-ink-gray-5 bg-surface-gray-2 border border-dashed rounded-md p-4 text-center"
+							>
+								{{ __('No qualifications added yet. At least one is required.') }}
+							</div>
+
+							<!-- Add row form container -->
+							<div v-if="!isReadOnly" class="space-y-3 pt-3 border-t">
+								<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+									<input
+										v-model="newQual.qualification"
+										type="text"
+										:placeholder="__('Qualification (e.g. B.Tech)')"
+										class="text-sm border rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500"
+									/>
+									<input
+										v-model="newQual.institution"
+										type="text"
+										:placeholder="__('Institution')"
+										class="text-sm border rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500"
+									/>
+									<input
+										v-model.number="newQual.year_of_passing"
+										type="number"
+										:placeholder="__('Year of Passing')"
+										class="text-sm border rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500"
+									/>
+								</div>
+								<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+									<select
+										v-model="newQual.level"
+										class="text-sm border rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500"
+									>
+										<option value="" disabled>{{ __('Select Level') }}</option>
+										<option value="Under Graduate">{{ __('Under Graduate') }}</option>
+										<option value="Graduate">{{ __('Graduate') }}</option>
+										<option value="Post Graduate">{{ __('Post Graduate') }}</option>
+									</select>
+									<input
+										v-model="newQual.class_per"
+										type="text"
+										:placeholder="__('Class / Percentage')"
+										class="text-sm border rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500"
+									/>
+									<input
+										v-model="newQual.maj_opt_subj"
+										type="text"
+										:placeholder="__('Major/Optional Subjects')"
+										class="text-sm border rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500"
+									/>
+								</div>
+								<div class="flex justify-end">
+									<Button
+										type="button"
+										variant="outline"
+										@click="addQualification"
+										class="rounded-md text-xs font-semibold px-4 h-9 justify-center"
+									>
+										{{ __('Add Row') }}
+									</Button>
+								</div>
+							</div>
+						</div>
+
+						<!-- Submit -->
+						<div v-if="!isReadOnly" class="flex justify-end pt-4 border-t">
+							<Button
+								:loading="saving"
+								variant="solid"
+								type="submit"
+								class="rounded-md text-xs font-semibold px-5"
+							>
+								{{ __('Update Qualifications') }}
+							</Button>
+						</div>
+					</form>
+				</div>
+
+				<!-- TAB: Availability Rules -->
+				<div v-if="activeTab === 'availability'" class="space-y-6 max-w-5xl">
+					<div class="flex justify-between items-center">
+						<div>
+							<h3 class="text-base font-semibold text-ink-gray-9">{{ __('Weekly Availability Rules') }}</h3>
+							<p class="text-sm text-ink-gray-5 mt-0.5">{{ __('Set up your recurring weekly slot generation patterns.') }}</p>
+						</div>
+						<Button
+							@click="openAddModal"
+							variant="solid"
+							class="text-xs font-semibold"
+						>
+							<template #prefix>
+								<Plus class="w-3.5 h-3.5" />
+							</template>
+							{{ __('Add Rule') }}
 						</Button>
 					</div>
-				</form>
+
+					<div v-if="rules.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+						<div
+							v-for="rule in rules"
+							:key="rule.name"
+							class="border rounded-md p-4 bg-surface-white hover:border-outline-gray-3 transition-colors flex flex-col justify-between"
+						>
+							<div class="space-y-3">
+								<!-- Header: Weekday & Active Status -->
+								<div class="flex justify-between items-start">
+									<div>
+										<h4 class="font-bold text-ink-gray-9 text-sm">
+											{{ getWeekdaysString(rule.weekday) }}
+										</h4>
+										<p class="text-xs text-ink-gray-5 mt-0.5">
+											{{ rule.effective_from }} {{ rule.effective_to ? `to ${rule.effective_to}` : __('onwards') }}
+										</p>
+									</div>
+									<div class="flex gap-1.5">
+										<Badge
+											:label="rule.docstatus === 1 ? __('Submitted') : __('Draft')"
+											:theme="rule.docstatus === 1 ? 'blue' : 'gray'"
+											size="sm"
+										/>
+										<Badge
+											:label="rule.active ? __('Active') : __('Inactive')"
+											:theme="rule.active ? 'green' : 'red'"
+											size="sm"
+										/>
+									</div>
+								</div>
+
+								<!-- Details Grid -->
+								<div class="grid grid-cols-2 gap-4 pt-1 text-xs">
+									<div>
+										<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Time Range') }}</span>
+										<span class="font-semibold text-ink-gray-8">{{ formatTime(rule.start_time) }} – {{ formatTime(rule.end_time) }}</span>
+									</div>
+									<div>
+										<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Duration') }}</span>
+										<span class="font-semibold text-ink-gray-8">{{ settings_slot_duration }} {{ __('mins') }}</span>
+									</div>
+									<div class="col-span-2">
+										<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Time Zone') }}</span>
+										<span class="font-semibold text-ink-gray-8">{{ rule.timezone || profile.timezone || 'Asia/Kolkata' }}</span>
+									</div>
+								</div>
+							</div>
+
+							<!-- Actions: Draft rules show Edit + Delete; Submitted rules show read-only indicator -->
+							<div class="flex justify-end items-center gap-2.5 pt-3 border-t mt-4">
+								<!-- Draft-only actions -->
+								<template v-if="rule.docstatus === 0">
+									<Button
+										@click="openEditModal(rule)"
+										variant="outline"
+										class="text-xs font-semibold"
+									>
+										{{ __('Edit') }}
+									</Button>
+									<Button
+										@click="deleteRule(rule.name)"
+										variant="outline"
+										class="text-xs font-semibold text-red-600 hover:text-red-700"
+									>
+										{{ __('Delete') }}
+									</Button>
+								</template>
+							</div>
+						</div>
+					</div>
+
+					<div v-else class="text-center py-12 border border-dashed rounded-md text-ink-gray-5 space-y-3 bg-surface-white">
+						<p>{{ __('No availability rules defined yet. Create your first rule to generate booking slots.') }}</p>
+						<Button
+							@click="openAddModal"
+							variant="solid"
+							class="text-xs font-semibold mx-auto"
+						>
+							{{ __('Create Rule') }}
+						</Button>
+					</div>
+				</div>
+
+				<!-- TAB: Settings -->
+				<div v-if="activeTab === 'settings'" class="space-y-6 max-w-3xl">
+					<!-- Verified lock notice -->
+					<div
+						v-if="isReadOnly"
+						class="p-4 bg-surface-gray-2 border rounded-md text-sm text-ink-gray-7 flex items-start gap-2.5"
+					>
+						<Lock class="w-4 h-4 mt-0.5 shrink-0 text-ink-gray-5" />
+						<div>
+							<span class="font-semibold text-ink-gray-9">{{ __('Settings locked') }}</span>.
+							{{ __('Profile is verified. Contact administrator to change settings.') }}
+						</div>
+					</div>
+
+					<form @submit.prevent="saveProfile" class="space-y-5">
+						<div class="border rounded-md p-5 bg-surface-white space-y-4">
+							<h3 class="text-sm font-semibold text-ink-gray-9">{{ __('Marketplace Settings') }}</h3>
+							
+							<div class="flex items-start justify-between">
+								<div class="space-y-0.5">
+									<label class="text-sm font-medium text-ink-gray-9 select-none" :class="{ 'cursor-pointer': !isReadOnly }" for="activeToggle">
+										{{ __('Active Status') }}
+									</label>
+									<p class="text-xs text-ink-gray-5">
+										{{ __('Toggle this to enable or disable your profile in the tutor marketplace directory.') }}
+									</p>
+								</div>
+								<input
+									id="activeToggle"
+									v-model="form.active"
+									type="checkbox"
+									:disabled="isReadOnly"
+									class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 disabled:opacity-60 disabled:cursor-not-allowed"
+								/>
+							</div>
+
+							<div class="border-t pt-4 flex items-center justify-between">
+								<div class="space-y-0.5">
+									<span class="text-sm font-medium text-ink-gray-9">{{ __('Verification Status') }}</span>
+									<p class="text-xs text-ink-gray-5">{{ __('Profile verification status determines bookability.') }}</p>
+								</div>
+								<Badge
+									v-if="profile"
+									:label="profile.verification_status"
+									:theme="profile.verification_status === 'Verified' ? 'green' : 'gray'"
+									size="md"
+								/>
+							</div>
+						</div>
+
+						<!-- Submit — hidden when verified -->
+						<div v-if="!isReadOnly" class="flex justify-end pt-4 border-t">
+							<Button
+								:loading="saving"
+								variant="solid"
+								type="submit"
+								class="rounded-md text-xs font-semibold px-5"
+							>
+								{{ __('Save Settings') }}
+							</Button>
+						</div>
+					</form>
+				</div>
+
 			</div>
 		</div>
+
+		<!-- Rule Edit/Add Modal -->
+		<Dialog
+			v-model="showModal"
+			:options="{
+				title: editingRule ? __('Edit Availability Rule') : __('Add Availability Rule'),
+				size: 'lg',
+			}"
+		>
+			<template #body-content>
+				<AvailabilityForm
+					:rule="editingRule"
+					:loading="savingRule"
+					@save="handleSave"
+					@cancel="showModal = false"
+				/>
+			</template>
+		</Dialog>
 	</div>
 </template>
 
 <script setup>
-import { inject, onMounted, reactive, ref } from 'vue'
-import { Breadcrumbs, LoadingIndicator, Button, call, toast } from 'frappe-ui'
+import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Breadcrumbs, LoadingIndicator, Button, Badge, TabButtons, Dialog, call, toast } from 'frappe-ui'
+import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
+import { getTimezones } from '@/utils'
+import AvailabilityForm from '@/components/cz/AvailabilityForm.vue'
+import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
+import { User, Lock, Plus } from 'lucide-vue-next'
 
-const user = inject('$user')
+const route = useRoute()
+const router = useRouter()
+const dashboardStore = useTutorDashboardStore()
 
-const loading = ref(true)
+const activeTab = ref(route.query.tab || 'overview')
+
+watch(() => route.query.tab, (newTab) => {
+	if (newTab && ['overview', 'subjects', 'qualifications', 'availability', 'settings'].includes(newTab)) {
+		activeTab.value = newTab
+	}
+})
+
+watch(activeTab, (newTab) => {
+	router.replace({ query: { ...route.query, tab: newTab } })
+})
+
+const profileTabs = [
+	{ value: 'overview', label: __('Overview') },
+	{ value: 'subjects', label: __('Subjects') },
+	{ value: 'qualifications', label: __('Qualifications') },
+	{ value: 'availability', label: __('Availability') },
+	{ value: 'settings', label: __('Settings') }
+]
+
+const breadcrumbs = computed(() => [
+	{ label: __('Tutor Profile'), route: { name: 'TutorProfile' } }
+])
+
+const loadingOptions = ref(true)
 const saving = ref(false)
-const isEdit = ref(false)
+const isCreating = ref(false)
 
 const allSubjects = ref([])
 const allBoards = ref([])
@@ -171,7 +585,15 @@ const selectedBoards = ref([])
 const selectedClasses = ref([])
 
 const qualifications = ref([])
-const newQual = reactive({ degree: '', institution: '', year: '' })
+const newQual = reactive({
+	qualification: '',
+	institution: '',
+	year_of_passing: '',
+	level: '',
+	class_per: '',
+	maj_opt_subj: '',
+})
+const timezoneOptions = getTimezones()
 
 const form = reactive({
 	tutor_name: '',
@@ -179,14 +601,61 @@ const form = reactive({
 	years_of_experience: 1,
 	hourly_rate: 500,
 	timezone: 'Asia/Kolkata',
+	active: true,
+})
+
+const profile = computed(() => dashboardStore.dashboardData.data?.profile)
+const rules = computed(() => dashboardStore.dashboardData.data?.rules || [])
+const settings_slot_duration = computed(() => {
+	return dashboardStore.dashboardData.data?.settings_slot_duration || 30
+})
+
+const isReadOnly = computed(() => {
+	return profile.value?.verification_status === 'Verified'
 })
 
 onMounted(async () => {
 	await loadFormOptions()
-	await fetchProfile()
+	await dashboardStore.dashboardData.submit()
+	syncForm()
 })
 
+watch(profile, () => {
+	syncForm()
+})
+
+function syncForm() {
+	if (profile.value) {
+		Object.assign(form, {
+			tutor_name: profile.value.tutor_name,
+			bio: profile.value.bio || '',
+			years_of_experience: profile.value.years_of_experience,
+			hourly_rate: profile.value.hourly_rate || 500,
+			timezone: profile.value.timezone || 'Asia/Kolkata',
+			active: profile.value.active === undefined ? true : !!profile.value.active,
+		})
+		selectedSubjects.value = profile.value.subjects ? profile.value.subjects.map((s) => s.subject) : []
+		selectedBoards.value = profile.value.boards ? profile.value.boards.map((b) => b.board) : []
+		selectedClasses.value = profile.value.classes ? profile.value.classes.map((c) => c.class) : []
+		qualifications.value = profile.value.qualifications
+			? profile.value.qualifications.map((q) => ({
+				qualification: q.qualification,
+				institution: q.institution,
+				year_of_passing: q.year_of_passing,
+				level: q.level,
+				class_per: q.class_per,
+				maj_opt_subj: q.maj_opt_subj,
+			}))
+			: []
+	}
+}
+
 async function loadFormOptions() {
+	if (allSubjects.value.length && allBoards.value.length && allClasses.value.length) {
+		loadingOptions.value = false
+		return
+	}
+	loadingOptions.value = true
 	try {
 		const [subRes, brdRes, clsRes] = await Promise.all([
 			call('frappe.client.get_list', { doctype: 'Subject', fields: ['name'], limit: 100 }),
@@ -198,66 +667,30 @@ async function loadFormOptions() {
 		allClasses.value = clsRes ? clsRes.map((r) => r.name) : []
 	} catch (e) {
 		console.error('Failed to load options:', e)
-	}
-}
-
-async function fetchProfile() {
-	loading.value = true
-	try {
-		if (user.data?.name) {
-			const tutorRes = await call('frappe.client.get_list', {
-				doctype: 'Tutor Profile',
-				filters: { user: user.data.name },
-				fields: ['name', 'tutor_name', 'bio', 'years_of_experience', 'hourly_rate', 'timezone'],
-			})
-			if (tutorRes && tutorRes.length) {
-				const profile = tutorRes[0]
-				isEdit.value = true
-				Object.assign(form, {
-					tutor_name: profile.tutor_name,
-					bio: profile.bio || '',
-					years_of_experience: profile.years_of_experience,
-					hourly_rate: profile.hourly_rate || 500,
-					timezone: profile.timezone || 'Asia/Kolkata',
-				})
-				const doc = await call('frappe.client.get', {
-					doctype: 'Tutor Profile',
-					name: profile.name,
-				})
-				if (doc) {
-					selectedSubjects.value = doc.subjects ? doc.subjects.map((s) => s.subject) : []
-					selectedBoards.value = doc.boards ? doc.boards.map((b) => b.board) : []
-					selectedClasses.value = doc.classes ? doc.classes.map((c) => c.class) : []
-					qualifications.value = doc.qualifications
-						? doc.qualifications.map((q) => ({
-							degree: q.degree,
-							institution: q.institution,
-							year: q.year,
-						}))
-						: []
-				}
-			}
-		}
-	} catch (e) {
-		console.error('Failed to load profile:', e)
 	} finally {
-		loading.value = false
+		loadingOptions.value = false
 	}
 }
 
 function addQualification() {
-	if (!newQual.degree || !newQual.institution || !newQual.year) {
-		toast({ title: __('Please fill in degree, institution and year.'), variant: 'warning' })
+	if (!newQual.qualification || !newQual.institution || !newQual.year_of_passing) {
+		toast({ title: __('Please fill in qualification, institution and year of passing.'), variant: 'warning' })
 		return
 	}
 	qualifications.value.push({
-		degree: newQual.degree,
+		qualification: newQual.qualification,
 		institution: newQual.institution,
-		year: parseInt(newQual.year),
+		year_of_passing: parseInt(newQual.year_of_passing),
+		level: newQual.level || null,
+		class_per: newQual.class_per || null,
+		maj_opt_subj: newQual.maj_opt_subj || null,
 	})
-	newQual.degree = ''
+	newQual.qualification = ''
 	newQual.institution = ''
-	newQual.year = ''
+	newQual.year_of_passing = ''
+	newQual.level = ''
+	newQual.class_per = ''
+	newQual.maj_opt_subj = ''
 }
 
 function removeQualification(index) {
@@ -281,11 +714,12 @@ async function saveProfile() {
 			boards: JSON.stringify(selectedBoards.value),
 			classes: JSON.stringify(selectedClasses.value),
 			qualifications: JSON.stringify(qualifications.value),
+			active: form.active ? 1 : 0,
 		})
 		if (res && res.success) {
 			toast({ title: res.message, variant: 'success' })
-			isEdit.value = true
-			await fetchProfile()
+			isCreating.value = false
+			await dashboardStore.dashboardData.submit()
 		} else {
 			toast({ title: res.error || __('Failed to save profile.'), variant: 'error' })
 		}
@@ -294,6 +728,95 @@ async function saveProfile() {
 		toast({ title: __('An error occurred while saving.'), variant: 'error' })
 	} finally {
 		saving.value = false
+	}
+}
+
+// Availability rules handling
+const showModal = ref(false)
+const editingRule = ref(null)
+const savingRule = ref(false)
+
+function getWeekdaysString(weekdayList) {
+	if (!weekdayList || !weekdayList.length) return ''
+	return weekdayList.map(w => w.weekday).join(', ')
+}
+
+function formatTime(timeStr) {
+	if (!timeStr) return ''
+	const parts = timeStr.split(':')
+	const hours = parseInt(parts[0])
+	const minutes = parts[1]
+	const ampm = hours >= 12 ? 'PM' : 'AM'
+	const formattedHours = hours % 12 || 12
+	return `${formattedHours}:${minutes} ${ampm}`
+}
+
+function openAddModal() {
+	editingRule.value = null
+	showModal.value = true
+}
+
+function openEditModal(rule) {
+	const weekdayStr = Array.isArray(rule.weekday) && rule.weekday.length
+		? rule.weekday[0].weekday
+		: ''
+	editingRule.value = {
+		...rule,
+		weekday: weekdayStr
+	}
+	showModal.value = true
+}
+
+async function handleSave(formData) {
+	savingRule.value = true
+	try {
+		const weekdayRows = [{ weekday: formData.weekday }]
+
+		if (editingRule.value && editingRule.value.name) {
+			await call('frappe.client.cancel', {
+				doctype: 'Tutor Availability Rule',
+				name: editingRule.value.name,
+			})
+			const doc = {
+				doctype: 'Tutor Availability Rule',
+				tutor: profile.value.name,
+				workflow_state: 'Approved',
+				...formData,
+				weekday: weekdayRows
+			}
+			const newDoc = await call('frappe.client.insert', { doc })
+			await call('frappe.client.submit', { doc: newDoc })
+		} else {
+			const doc = {
+				doctype: 'Tutor Availability Rule',
+				tutor: profile.value.name,
+				workflow_state: 'Approved',
+				...formData,
+				weekday: weekdayRows
+			}
+			const newDoc = await call('frappe.client.insert', { doc })
+			await call('frappe.client.submit', { doc: newDoc })
+		}
+		showModal.value = false
+		toast({ title: __('Rule saved successfully.'), variant: 'success' })
+		await dashboardStore.dashboardData.submit()
+	} catch (e) {
+		console.error('Save rule failed:', e)
+		toast({ title: e.message || __('Failed to save rule.'), variant: 'error' })
+	} finally {
+		savingRule.value = false
+	}
+}
+
+async function deleteRule(name) {
+	if (!confirm(__('Are you sure you want to delete this draft rule?'))) return
+	try {
+		await call('smart_learning.api.tutor_api.delete_availability_rule', { rule_name: name })
+		toast({ title: __('Rule deleted successfully.'), variant: 'success' })
+		await dashboardStore.dashboardData.submit()
+	} catch (e) {
+		console.error('Failed to delete rule:', e)
+		toast({ title: e.message || __('Failed to delete rule.'), variant: 'error' })
 	}
 }
 </script>

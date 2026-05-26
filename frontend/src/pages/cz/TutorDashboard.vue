@@ -1,81 +1,138 @@
 <template>
-	<div class="min-h-screen bg-surface-gray-1">
-		<header class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5">
-			<Breadcrumbs
-				class="h-7"
-				:items="[{ label: __('Tutor Dashboard'), route: { name: 'TutorDashboard' } }]"
-			/>
-		</header>
+	<div>
+		<LayoutHeader>
+			<template #left-header>
+				<Breadcrumbs class="h-7" :items="breadcrumbs" />
+			</template>
+		</LayoutHeader>
 
-		<div class="max-w-6xl mx-auto p-5 sm:p-8 space-y-6">
-			<div v-if="loading" class="flex justify-center py-20">
+		<div class="mx-auto flex min-h-0 w-full flex-1 flex-col p-5 max-w-6xl">
+			<!-- Loading State -->
+			<div v-if="dashboardStore.dashboardData.loading" class="flex justify-center py-20">
 				<LoadingIndicator class="w-10 h-10 text-gray-400" />
 			</div>
 
-			<div v-else-if="!tutorName" class="text-center py-20 bg-surface-cards border border-outline-gray-2 rounded-lg">
-				<p class="text-ink-gray-5">{{ __('No Tutor Profile linked to your user account.') }}</p>
-				<router-link :to="{ name: 'TutorProfile' }" class="mt-4 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold">
+			<!-- Empty State: No Profile -->
+			<div v-else-if="!profile" class="text-center py-20 border rounded-md space-y-4 bg-surface-white">
+				<div class="flex flex-col items-center justify-center space-y-2">
+					<div class="p-3 bg-surface-gray-2 rounded-full">
+						<HomeIcon class="w-8 h-8 text-ink-gray-5 stroke-1.5" />
+					</div>
+					<h3 class="text-lg font-medium text-ink-gray-9">{{ __('No Tutor Profile linked to your account') }}</h3>
+					<p class="text-sm text-ink-gray-7 max-w-sm">
+						{{ __('Please create your tutor profile first to access the dashboard.') }}
+					</p>
+				</div>
+				<router-link
+					:to="{ name: 'TutorProfile' }"
+					class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold shadow-sm transition-colors"
+				>
 					{{ __('Create Tutor Profile') }}
 				</router-link>
 			</div>
 
+			<!-- Dashboard Content -->
 			<div v-else class="space-y-6">
 				<!-- Stat Cards -->
-				<div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-					<div class="bg-surface-cards p-5 rounded-lg border border-outline-gray-2 shadow-sm space-y-2">
-						<span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-wider">{{ __('Total Booked Sessions') }}</span>
-						<p class="text-3xl font-extrabold text-ink-gray-9">{{ bookings.length }}</p>
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+					<!-- Availability Card -->
+					<div class="border rounded-md bg-surface-white px-6 pt-5 pb-4 flex flex-col justify-between">
+						<span class="text-sm text-ink-gray-5">{{ __('Availability Status') }}</span>
+						<div class="mt-2.5">
+							<Badge
+								:label="availabilityStatus"
+								:theme="availabilityStatus === 'Active & Verified' ? 'green' : 'red'"
+								size="md"
+							/>
+						</div>
 					</div>
-					<div class="bg-surface-cards p-5 rounded-lg border border-outline-gray-2 shadow-sm space-y-2">
-						<span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-wider">{{ __('Available Slots') }}</span>
-						<p class="text-3xl font-extrabold text-ink-gray-9">{{ availableSlotsCount }}</p>
-					</div>
-					<div class="bg-surface-cards p-5 rounded-lg border border-outline-gray-2 shadow-sm space-y-2">
-						<span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-wider">{{ __('Total Earnings') }}</span>
-						<p class="text-3xl font-extrabold text-ink-gray-9">{{ totalEarnings }} INR</p>
-					</div>
+
+					<!-- Upcoming Sessions -->
+					<NumberChart
+						class="border rounded-md"
+						:config="{ title: __('Upcoming Sessions'), value: upcomingSessionsCount }"
+					/>
+
+					<!-- Completed Sessions -->
+					<NumberChart
+						class="border rounded-md"
+						:config="{ title: __('Completed Sessions'), value: completedSessionsCount }"
+					/>
+
+					<!-- Active Students -->
+					<NumberChart
+						class="border rounded-md"
+						:config="{ title: __('Total Students'), value: uniqueStudentsCount }"
+					/>
+
+					<!-- Available Slots -->
+					<NumberChart
+						class="border rounded-md"
+						:config="{ title: __('Available Slots'), value: availableSlotsCount }"
+					/>
+
+					<!-- Booked Slots -->
+					<NumberChart
+						class="border rounded-md"
+						:config="{ title: __('Booked Slots'), value: bookedSlotsCount }"
+					/>
+
+					<!-- Pending Sessions -->
+					<NumberChart
+						class="border rounded-md"
+						:config="{ title: __('Pending Sessions'), value: pendingSessionsCount }"
+					/>
 				</div>
 
 				<!-- Recent Sessions -->
-				<div class="space-y-4">
-					<h3 class="text-lg font-bold text-ink-gray-9">{{ __('Recent Booked Sessions') }}</h3>
-					<div v-if="bookings.length" class="bg-surface-cards border border-outline-gray-2 rounded-lg shadow-sm overflow-hidden">
-						<table class="w-full text-left border-collapse text-sm text-ink-gray-8">
-							<thead>
-								<tr class="bg-surface-gray-1 border-b border-outline-gray-2 text-ink-gray-5 font-semibold">
-									<th class="p-4">{{ __('Student') }}</th>
-									<th class="p-4">{{ __('Subject') }}</th>
-									<th class="p-4">{{ __('Date/Time') }}</th>
-									<th class="p-4">{{ __('Status') }}</th>
-									<th class="p-4">{{ __('Meeting') }}</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr v-for="b in bookings" :key="b.name" class="border-b border-outline-gray-1 hover:bg-surface-gray-1/50 transition-colors">
-									<td class="p-4 font-semibold">{{ b.student }}</td>
-									<td class="p-4">{{ b.subject || __('N/A') }}</td>
-									<td class="p-4">{{ formatTime(b.locked_at || b.confirmed_at) }}</td>
-									<td class="p-4">
-										<Badge :theme="b.booking_status === 'Confirmed' ? 'green' : 'blue'" size="sm">
-											{{ b.booking_status }}
-										</Badge>
-									</td>
-									<td class="p-4">
-										<a
-											v-if="b.meeting_link"
-											:href="b.meeting_link"
-											target="_blank"
-											class="text-blue-600 hover:underline font-semibold"
-										>
-											{{ __('Join') }}
-										</a>
-										<span v-else class="text-ink-gray-4 italic">{{ __('No link') }}</span>
-									</td>
-								</tr>
-							</tbody>
-						</table>
+				<div class="space-y-3 pt-4">
+					<h3 class="text-lg font-semibold text-ink-gray-9">{{ __('Recent Booked Sessions') }}</h3>
+					<div v-if="bookings.length" class="border rounded-md overflow-hidden bg-surface-white">
+						<div class="overflow-x-auto">
+							<table class="w-full text-left border-collapse text-sm text-ink-gray-7">
+								<thead>
+									<tr class="bg-surface-gray-2 border-b text-ink-gray-5 font-medium text-xs uppercase tracking-wider">
+										<th class="p-4">{{ __('Student') }}</th>
+										<th class="p-4">{{ __('Subject') }}</th>
+										<th class="p-4">{{ __('Date/Time') }}</th>
+										<th class="p-4">{{ __('Status') }}</th>
+										<th class="p-4 text-right">{{ __('Meeting') }}</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr
+										v-for="b in bookings.slice(0, 10)"
+										:key="b.name"
+										class="border-b last:border-none hover:bg-surface-gray-1 transition-colors"
+									>
+										<td class="p-4 font-medium text-ink-gray-9">{{ b.student }}</td>
+										<td class="p-4 text-ink-gray-7">{{ b.subject || __('N/A') }}</td>
+										<td class="p-4 text-ink-gray-7">{{ formatTime(b.locked_at || b.confirmed_at) }}</td>
+										<td class="p-4">
+											<Badge
+												:label="b.booking_status"
+												:theme="b.booking_status === 'Confirmed' ? 'blue' : b.booking_status === 'Completed' ? 'green' : 'gray'"
+												size="sm"
+											/>
+										</td>
+										<td class="p-4 text-right">
+											<a
+												v-if="b.booking_status === 'Confirmed' && b.meeting_link"
+												:href="b.meeting_link"
+												target="_blank"
+												class="text-blue-600 hover:text-blue-700 hover:underline font-semibold"
+											>
+												{{ __('Join Class') }}
+											</a>
+											<span v-else-if="b.booking_status === 'Confirmed'" class="text-ink-gray-4 italic text-xs">{{ __('Generating...') }}</span>
+											<span v-else class="text-ink-gray-4 italic text-xs">—</span>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
 					</div>
-					<div v-else class="text-center py-12 bg-surface-cards border border-outline-gray-2 rounded-lg text-ink-gray-5">
+					<div v-else class="text-center py-12 border border-dashed rounded-md text-ink-gray-5 bg-surface-white">
 						{{ __('No sessions booked yet.') }}
 					</div>
 				</div>
@@ -85,61 +142,60 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
-import { Breadcrumbs, LoadingIndicator, Badge, call } from 'frappe-ui'
+import { computed, onMounted } from 'vue'
+import { Breadcrumbs, LoadingIndicator, Badge, NumberChart } from 'frappe-ui'
+import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
+import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
+import { Home as HomeIcon } from 'lucide-vue-next'
+import { convertToLocal } from '@/utils/timezone'
 
-const user = inject('$user')
-const dayjs = inject('$dayjs')
-
-const loading = ref(true)
-const tutorName = ref('')
-const bookings = ref([])
-const availableSlotsCount = ref(0)
+const dashboardStore = useTutorDashboardStore()
 
 onMounted(async () => {
-	try {
-		if (user.data?.name) {
-			const tutorRes = await call('frappe.client.get_value', {
-				doctype: 'Tutor Profile',
-				filters: { user: user.data.name },
-				fieldname: 'name',
-			})
-			if (tutorRes && tutorRes.message) {
-				tutorName.value = tutorRes.message.name
-				
-				// Fetch bookings
-				const bkRes = await call('frappe.client.get_list', {
-					doctype: 'Session Booking',
-					filters: { tutor: tutorName.value },
-					fields: ['name', 'student', 'subject', 'locked_at', 'confirmed_at', 'booking_status', 'meeting_link', 'amount'],
-					limit: 10,
-				})
-				bookings.value = bkRes || []
-
-				// Fetch slots count
-				const slotsRes = await call('frappe.client.get_list', {
-					doctype: 'Tutor Availability Slot',
-					filters: { tutor: tutorName.value, status: 'Available' },
-					fields: ['name'],
-				})
-				availableSlotsCount.value = slotsRes ? slotsRes.length : 0
-			}
-		}
-	} catch (e) {
-		console.error("Dashboard data load failed:", e)
-	} finally {
-		loading.value = false
-	}
+	await dashboardStore.dashboardData.submit()
 })
 
-const totalEarnings = computed(() => {
-	return bookings.value
-		.filter(b => b.booking_status === 'Confirmed' || b.booking_status === 'Completed')
-		.reduce((sum, b) => sum + parseFloat(b.amount || 0), 0)
+const breadcrumbs = computed(() => [
+	{ label: __('Tutor Dashboard'), route: { name: 'TutorDashboard' } }
+])
+
+const profile = computed(() => dashboardStore.dashboardData.data?.profile)
+const bookings = computed(() => dashboardStore.dashboardData.data?.sessions || [])
+const slots = computed(() => dashboardStore.dashboardData.data?.slots || [])
+
+const availabilityStatus = computed(() => {
+	if (!profile.value) return 'No Profile'
+	return (profile.value.active && profile.value.verification_status === 'Verified')
+		? 'Active & Verified'
+		: 'Inactive / Pending'
+})
+
+const bookedSlotsCount = computed(() => {
+	return slots.value.filter(s => s.status === 'Booked').length
+})
+
+const availableSlotsCount = computed(() => {
+	return slots.value.filter(s => s.status === 'Available').length
+})
+
+const upcomingSessionsCount = computed(() => {
+	return bookings.value.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success').length
+})
+
+const completedSessionsCount = computed(() => {
+	return bookings.value.filter(s => s.booking_status === 'Completed').length
+})
+
+const pendingSessionsCount = computed(() => {
+	return bookings.value.filter(s => s.booking_status === 'Pending Payment').length
+})
+
+const uniqueStudentsCount = computed(() => {
+	return new Set(bookings.value.map(b => b.student).filter(Boolean)).size
 })
 
 function formatTime(utcTime) {
-	if (!utcTime || !dayjs) return 'N/A'
-	return dayjs.utc(utcTime).local().format('DD MMM YYYY, hh:mm A')
+	const localObj = convertToLocal(utcTime)
+	return localObj ? localObj.format('DD MMM YYYY, hh:mm A') : 'N/A'
 }
 </script>

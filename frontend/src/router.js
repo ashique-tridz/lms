@@ -259,7 +259,7 @@ const routes = [
 	{
 		path: '/sessions/history',
 		name: 'SessionHistory',
-		component: () => import('@/pages/cz/SessionHistory.vue')
+		redirect: { name: 'Sessions' }
 	},
 	{
 		path: '/tutors',
@@ -279,7 +279,7 @@ const routes = [
 	{
 		path: '/tutor/availability',
 		name: 'AvailabilityRules',
-		component: () => import('@/pages/cz/AvailabilityRules.vue')
+		redirect: { name: 'TutorProfile', query: { tab: 'availability' } }
 	},
 	{
 		path: '/tutor/slots',
@@ -323,6 +323,17 @@ router.beforeEach(async (to, from, next) => {
 		if (!settings.data.allow_guest_access) {
 			window.location.href = '/login'
 			return
+		}
+	} else {
+		const roles = userResource.data?.roles || []
+		const isTutor = roles.includes('Tutor')
+		const tutorOnlyRoutes = ['TutorDashboard', 'AvailabilityRules', 'SlotCalendar', 'TutorSessions', 'TutorProfile']
+
+		if (tutorOnlyRoutes.includes(to.name) && !isTutor) {
+			return next({ name: 'Courses' })
+		}
+		if (to.name === 'BookSession' && isTutor) {
+			return next({ name: 'TutorDashboard' })
 		}
 	}
 	return next()

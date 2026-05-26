@@ -1,228 +1,188 @@
 <template>
-	<div class="min-h-screen bg-surface-gray-1">
-		<header class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5">
-			<Breadcrumbs class="h-7" :items="[{ label: __('My Sessions'), route: { name: 'TutorSessions' } }]" />
-		</header>
+	<div>
+		<LayoutHeader>
+			<template #left-header>
+				<Breadcrumbs class="h-7" :items="breadcrumbs" />
+			</template>
+		</LayoutHeader>
 
-		<div class="max-w-6xl mx-auto p-5 sm:p-8 space-y-6">
-			<div v-if="loading" class="flex justify-center py-20">
+		<div class="mx-auto flex min-h-0 w-full flex-1 flex-col p-5 max-w-6xl">
+			<!-- Loading State -->
+			<div v-if="dashboardStore.dashboardData.loading" class="flex justify-center py-20">
 				<LoadingIndicator class="w-10 h-10 text-gray-400" />
 			</div>
 
-			<div v-else-if="!tutorName" class="text-center py-20 bg-white border border-gray-200 rounded-xl shadow-sm">
-				<p class="text-gray-500 text-sm mb-4">{{ __('No Tutor Profile linked to your user account.') }}</p>
-				<router-link :to="{ name: 'TutorProfile' }" class="text-sm font-semibold text-blue-600 hover:underline">
+			<!-- Empty State: No Profile -->
+			<div v-else-if="!profile" class="text-center py-20 border rounded-md space-y-4 bg-surface-white">
+				<div class="flex flex-col items-center justify-center space-y-2">
+					<div class="p-3 bg-surface-gray-2 rounded-full">
+						<Video class="w-8 h-8 text-ink-gray-5 stroke-1.5" />
+					</div>
+					<h3 class="text-lg font-medium text-ink-gray-9">{{ __('No Tutor Profile linked to your account') }}</h3>
+					<p class="text-sm text-ink-gray-7 max-w-sm">
+						{{ __('Please create your tutor profile first to view booked sessions.') }}
+					</p>
+				</div>
+				<router-link
+					:to="{ name: 'TutorProfile' }"
+					class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold shadow-sm transition-colors"
+				>
 					{{ __('Create Tutor Profile') }}
 				</router-link>
 			</div>
 
-			<div v-else class="space-y-8">
-				<!-- Upcoming Sessions -->
-				<div class="space-y-4">
-					<h2 class="text-lg font-semibold text-gray-900">{{ __('Upcoming Sessions') }}</h2>
-					<div v-if="upcomingBookings.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-						<div
-							v-for="b in upcomingBookings"
-							:key="b.name"
-							class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4"
-						>
-							<div class="flex justify-between items-start pb-3 border-b border-gray-100">
+			<!-- Sessions Content -->
+			<div v-else class="space-y-6">
+				<div class="border-b pb-4">
+					<h2 class="text-xl font-semibold text-ink-gray-9">{{ __('My Tutoring Sessions') }}</h2>
+					<p class="text-sm text-ink-gray-5 mt-1">{{ __('Manage your tutoring sessions and launch classes.') }}</p>
+				</div>
+
+				<!-- Section Tabs -->
+				<div class="mb-4">
+					<TabButtons
+						class="inline-block"
+						:buttons="tabButtons"
+						v-model="activeTab"
+					/>
+				</div>
+
+				<!-- Sessions List -->
+				<div v-if="filteredSessions.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div
+						v-for="b in filteredSessions"
+						:key="b.name"
+						class="border rounded-md p-4 bg-surface-white hover:border-outline-gray-3 transition-colors flex flex-col justify-between"
+					>
+						<div class="space-y-3">
+							<!-- Header: Student Name & Badges -->
+							<div class="flex justify-between items-start pb-3 border-b">
 								<div>
-									<h4 class="font-semibold text-gray-900 text-base">{{ b.student }}</h4>
-									<p class="text-xs text-gray-500 mt-1">
-										<span class="font-semibold text-gray-400 uppercase tracking-wider text-[10px] mr-1">{{ __('Scheduled') }}:</span>
+									<h4 class="font-bold text-ink-gray-9 text-base">{{ b.student }}</h4>
+									<p class="text-xs text-ink-gray-5 mt-1">
+										<span class="font-semibold text-ink-gray-4 uppercase tracking-wider text-[10px] mr-1">{{ __('Scheduled') }}:</span>
 										{{ formatTime(b.locked_at || b.confirmed_at) }}
 									</p>
 								</div>
-								<Badge label="Confirmed" theme="blue" size="sm" />
-							</div>
-
-							<div class="grid grid-cols-3 gap-2 text-xs">
-								<div>
-									<span class="text-gray-400 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Subject') }}</span>
-									<span class="font-semibold text-gray-800">{{ b.subject || '—' }}</span>
-								</div>
-								<div>
-									<span class="text-gray-400 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Board') }}</span>
-									<span class="font-semibold text-gray-800">{{ b.board || '—' }}</span>
-								</div>
-								<div>
-									<span class="text-gray-400 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Class') }}</span>
-									<span class="font-semibold text-gray-800">{{ b.class || '—' }}</span>
+								<div class="flex flex-col items-end gap-1.5">
+									<Badge :label="b.booking_status" :theme="getBookingStatusTheme(b.booking_status)" size="sm" />
 								</div>
 							</div>
 
+							<!-- Subject/Board/Class Details -->
+							<div class="grid grid-cols-3 gap-2 text-xs pt-1 text-ink-gray-7">
+								<div>
+									<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Subject') }}</span>
+									<span class="font-semibold text-ink-gray-8">{{ b.subject || '—' }}</span>
+								</div>
+								<div>
+									<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Board') }}</span>
+									<span class="font-semibold text-ink-gray-8">{{ b.board || '—' }}</span>
+								</div>
+								<div>
+									<span class="text-ink-gray-4 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Class') }}</span>
+									<span class="font-semibold text-ink-gray-8">{{ b.class || '—' }}</span>
+								</div>
+							</div>
+						</div>
+
+						<!-- Action Buttons (Launch meeting) -->
+						<div class="flex justify-end items-center pt-3 border-t mt-4">
 							<div>
 								<a
-									v-if="b.meeting_link"
+									v-if="b.booking_status === 'Confirmed' && b.meeting_link"
 									:href="b.meeting_link"
 									target="_blank"
-									class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-150 shadow-sm"
+									class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-150"
 								>
 									<Video class="w-3.5 h-3.5" />
 									{{ __('Launch Class') }}
 								</a>
-								<span v-else class="text-xs text-gray-400 italic">
-									{{ __('Meeting link generating...') }}
+								<span v-else-if="b.booking_status === 'Confirmed'" class="text-xs text-ink-gray-4 italic">
+									{{ __('Meeting generating...') }}
 								</span>
+								<span v-else-if="b.booking_status === 'Completed'" class="text-xs text-green-600 font-medium italic">
+									{{ __('Class concluded') }}
+								</span>
+								<span v-else class="text-xs text-ink-gray-4 italic">—</span>
 							</div>
 						</div>
-					</div>
-					<div v-else class="text-sm text-gray-500 py-8 text-center bg-white border border-dashed border-gray-200 rounded-xl">
-						{{ __('No upcoming sessions booked.') }}
 					</div>
 				</div>
 
-				<!-- Past Sessions -->
-				<div class="space-y-4">
-					<h2 class="text-lg font-semibold text-gray-900">{{ __('Past Sessions') }}</h2>
-					<div v-if="pastBookings.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-						<div
-							v-for="b in pastBookings"
-							:key="b.name"
-							class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4"
-						>
-							<div class="flex justify-between items-start pb-3 border-b border-gray-100">
-								<div>
-									<h4 class="font-semibold text-gray-900 text-base">{{ b.student }}</h4>
-									<p class="text-xs text-gray-500 mt-1">
-										<span class="font-semibold text-gray-400 uppercase tracking-wider text-[10px] mr-1">{{ __('Concluded') }}:</span>
-										{{ formatTime(b.locked_at || b.confirmed_at) }}
-									</p>
-								</div>
-								<Badge
-									:label="b.booking_status"
-									:theme="b.booking_status === 'Completed' ? 'green' : 'gray'"
-									size="sm"
-								/>
-							</div>
-
-							<div class="grid grid-cols-3 gap-2 text-xs">
-								<div>
-									<span class="text-gray-400 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Subject') }}</span>
-									<span class="font-semibold text-gray-800">{{ b.subject || '—' }}</span>
-								</div>
-								<div>
-									<span class="text-gray-400 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Board') }}</span>
-									<span class="font-semibold text-gray-800">{{ b.board || '—' }}</span>
-								</div>
-								<div>
-									<span class="text-gray-400 block mb-0.5 uppercase tracking-wider text-[10px]">{{ __('Class') }}</span>
-									<span class="font-semibold text-gray-800">{{ b.class || '—' }}</span>
-								</div>
-							</div>
-
-							<div v-if="b.ai_summary">
-								<Button
-									@click="viewSummary(b)"
-									variant="outline"
-									class="rounded-lg text-xs font-semibold"
-								>
-									{{ __('AI Meeting Audit') }}
-								</Button>
-							</div>
-						</div>
-					</div>
-					<div v-else class="text-sm text-gray-500 py-8 text-center bg-white border border-dashed border-gray-200 rounded-xl">
-						{{ __('No past sessions found.') }}
-					</div>
+				<div v-else class="text-center py-20 text-ink-gray-5 border rounded-md bg-surface-white">
+					{{ __('No sessions found matching this status filter.') }}
 				</div>
 			</div>
 		</div>
-
-		<!-- AI Audit Dialog -->
-		<Dialog
-			v-model="showAuditModal"
-			:options="{
-				title: `${__('AI Session Summary')} — ${selectedBooking?.student}`,
-				size: 'lg',
-			}"
-		>
-			<template #body-content>
-				<div class="space-y-4 p-4">
-					<div>
-						<p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{{ __('AI Summary') }}</p>
-						<div class="bg-surface-gray-1 border border-outline-gray-2 rounded-lg p-4 text-sm text-ink-gray-8 leading-relaxed whitespace-pre-wrap">
-							{{ selectedBooking?.ai_summary }}
-						</div>
-					</div>
-					<div v-if="selectedBooking?.ai_transcript">
-						<p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{{ __('AI Transcript') }}</p>
-						<div class="bg-surface-gray-1 border border-outline-gray-2 rounded-lg p-4 text-sm text-ink-gray-8 leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
-							{{ selectedBooking?.ai_transcript }}
-						</div>
-					</div>
-				</div>
-			</template>
-		</Dialog>
 	</div>
 </template>
 
 <script setup>
-import { inject, onMounted, ref } from 'vue'
-import { Breadcrumbs, LoadingIndicator, Dialog, Button, Badge, call } from 'frappe-ui'
+import { computed, onMounted, ref } from 'vue'
+import { Breadcrumbs, LoadingIndicator, Badge, TabButtons } from 'frappe-ui'
+import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
+import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
 import { Video } from 'lucide-vue-next'
+import { convertToLocal } from '@/utils/timezone'
 
-const user = inject('$user')
-const dayjs = inject('$dayjs')
+const dashboardStore = useTutorDashboardStore()
 
-const loading = ref(true)
-const tutorName = ref('')
-const upcomingBookings = ref([])
-const pastBookings = ref([])
-
-const showAuditModal = ref(false)
-const selectedBooking = ref(null)
+const activeTab = ref('upcoming')
 
 onMounted(async () => {
-	await fetchTutorAndSessions()
+	await dashboardStore.dashboardData.submit()
 })
 
-async function fetchTutorAndSessions() {
-	loading.value = true
-	try {
-		if (user.data?.name) {
-			const tutorRes = await call('frappe.client.get_value', {
-				doctype: 'Tutor Profile',
-				filters: { user: user.data.name },
-				fieldname: 'name',
-			})
-			if (tutorRes && tutorRes.message) {
-				tutorName.value = tutorRes.message.name
-				const bkRes = await call('frappe.client.get_list', {
-					doctype: 'Session Booking',
-					filters: { tutor: tutorName.value },
-					fields: [
-						'name', 'student', 'subject', 'board', 'class',
-						'locked_at', 'confirmed_at', 'booking_status',
-						'meeting_link', 'ai_summary', 'ai_transcript',
-					],
-					order_by: 'confirmed_at desc',
-					limit: 100,
-				})
-				upcomingBookings.value = bkRes.filter((b) => b.booking_status === 'Confirmed')
-				pastBookings.value = bkRes.filter(
-					(b) =>
-						b.booking_status === 'Completed' ||
-						b.booking_status === 'Cancelled' ||
-						b.booking_status === 'Expired'
-				)
-			}
-		}
-	} catch (e) {
-		console.error('Failed to load sessions:', e)
-	} finally {
-		loading.value = false
+const profile = computed(() => dashboardStore.dashboardData.data?.profile)
+const sessions = computed(() => dashboardStore.dashboardData.data?.sessions || [])
+
+const breadcrumbs = computed(() => [
+	{ label: __('My Sessions'), route: { name: 'TutorSessions' } }
+])
+
+const tabButtons = computed(() => {
+	const upcoming = sessions.value.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success').length
+	const completed = sessions.value.filter(s => s.booking_status === 'Completed').length
+	const cancelled = sessions.value.filter(s => s.booking_status === 'Cancelled').length
+	const expired = sessions.value.filter(s => s.booking_status === 'Expired' || s.booking_status === 'Failed' || s.booking_status === 'Pending Payment').length
+
+	return [
+		{ value: 'upcoming', label: `${__('Upcoming')} (${upcoming})` },
+		{ value: 'completed', label: `${__('Completed')} (${completed})` },
+		{ value: 'cancelled', label: `${__('Cancelled')} (${cancelled})` },
+		{ value: 'expired', label: `${__('Expired')} (${expired})` },
+	]
+})
+
+const filteredSessions = computed(() => {
+	if (activeTab.value === 'upcoming') {
+		return sessions.value.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success')
+	} else if (activeTab.value === 'completed') {
+		return sessions.value.filter(s => s.booking_status === 'Completed')
+	} else if (activeTab.value === 'cancelled') {
+		return sessions.value.filter(s => s.booking_status === 'Cancelled')
+	} else {
+		return sessions.value.filter(s => s.booking_status === 'Expired' || s.booking_status === 'Failed' || s.booking_status === 'Pending Payment')
 	}
-}
+})
 
 function formatTime(utcTime) {
-	if (!utcTime || !dayjs) return 'N/A'
-	return dayjs.utc(utcTime).local().format('DD MMM YYYY, hh:mm A')
+	const localObj = convertToLocal(utcTime)
+	return localObj ? localObj.format('DD MMM YYYY, hh:mm A') : 'N/A'
 }
 
-function viewSummary(booking) {
-	selectedBooking.value = booking
-	showAuditModal.value = true
+function getBookingStatusTheme(status) {
+	switch (status) {
+		case 'Confirmed':
+		case 'Payment Success':
+			return 'blue'
+		case 'Completed':
+			return 'green'
+		case 'Cancelled':
+			return 'red'
+		default:
+			return 'gray'
+	}
 }
 </script>

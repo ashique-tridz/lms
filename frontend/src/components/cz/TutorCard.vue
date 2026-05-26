@@ -1,14 +1,15 @@
 <template>
 	<div
-		class="flex flex-col h-full bg-surface-white border border-outline-gray-2 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
+		class="flex flex-col h-full border rounded-md p-4 bg-surface-white hover:border-outline-gray-3 transition-colors"
+	>
 		<div class="flex flex-col flex-auto">
 			<!-- Header: name + timezone -->
-			<div class="flex items-start justify-between gap-4 mb-4 pb-3 border-b border-outline-gray-1">
+			<div class="flex items-start justify-between gap-4 mb-4 pb-3 border-b">
 				<div>
 					<h3 class="text-base font-semibold text-ink-gray-9 leading-tight">
 						{{ tutor.tutor_name }}
 					</h3>
-					<p class="text-xs text-ink-gray-5 mt-0.5">
+					<p class="text-xs text-ink-gray-5 mt-1.5">
 						{{ tutor.years_of_experience || tutor.years_of_experience || 0 }}
 						{{ __('yrs exp') }}
 					</p>
@@ -29,7 +30,7 @@
 			</p>
 
 			<!-- Tags: subjects + classes -->
-			<div class="mt-auto space-y-2 pt-3 border-t border-dashed border-outline-gray-1">
+			<div class="mt-auto space-y-2 pt-3 border-t">
 				<div v-if="tutor.subjects?.length" class="flex flex-wrap items-center gap-1">
 					<span class="text-[10px] uppercase tracking-wider text-ink-gray-4 mr-1">
 						{{ __('Subjects') }}:
@@ -46,7 +47,7 @@
 			</div>
 
 			<!-- Footer: price + book button -->
-			<div class="flex items-center justify-between mt-4 pt-4 border-t border-outline-gray-1">
+			<div class="flex items-center justify-between mt-4 pt-4 border-t">
 				<div class="text-sm font-semibold text-ink-gray-9">
 					<template v-if="tutor.hourly_rate">
 						{{ tutor.hourly_rate }} {{ currency }}
