@@ -62,6 +62,7 @@ import { useBookingStore } from '@/stores/useBookingStore'
 import SessionCard from '@/components/cz/SessionCard.vue'
 import RazorpayCheckout from '@/components/cz/RazorpayCheckout.vue'
 import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
+import { isSessionUpcoming } from '@/utils/timezone'
 
 const sessionStore = useSessionStore()
 const bookingStore = useBookingStore()
@@ -78,8 +79,15 @@ const breadcrumbs = computed(() => [
 ])
 
 const tabButtons = computed(() => {
-	const upcoming = sessionStore.sessions.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment' || s.booking_status === 'Payment Success').length
-	const completed = sessionStore.sessions.filter(s => s.booking_status === 'Completed').length
+	const upcoming = sessionStore.sessions.filter(s =>
+		(s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment' || s.booking_status === 'Payment Success') &&
+		isSessionUpcoming(s.start_datetime)
+	).length
+	const completed = sessionStore.sessions.filter(s =>
+		s.booking_status === 'Completed' ||
+		((s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment' || s.booking_status === 'Payment Success') &&
+		!isSessionUpcoming(s.start_datetime))
+	).length
 	const cancelled = sessionStore.sessions.filter(s => s.booking_status === 'Cancelled').length
 	const expired = sessionStore.sessions.filter(s => s.booking_status === 'Expired' || s.booking_status === 'Failed').length
 
@@ -94,9 +102,16 @@ const tabButtons = computed(() => {
 const filteredSessions = computed(() => {
 	if (!sessionStore.sessions) return []
 	if (activeTab.value === 'upcoming') {
-		return sessionStore.sessions.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment' || s.booking_status === 'Payment Success')
+		return sessionStore.sessions.filter(s =>
+			(s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment' || s.booking_status === 'Payment Success') &&
+			isSessionUpcoming(s.start_datetime)
+		)
 	} else if (activeTab.value === 'completed') {
-		return sessionStore.sessions.filter(s => s.booking_status === 'Completed')
+		return sessionStore.sessions.filter(s =>
+			s.booking_status === 'Completed' ||
+			((s.booking_status === 'Confirmed' || s.booking_status === 'Pending Payment' || s.booking_status === 'Payment Success') &&
+			!isSessionUpcoming(s.start_datetime))
+		)
 	} else if (activeTab.value === 'cancelled') {
 		return sessionStore.sessions.filter(s => s.booking_status === 'Cancelled')
 	} else {

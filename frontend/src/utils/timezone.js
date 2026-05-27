@@ -46,3 +46,9 @@ export function formatTimeRangeLocal(
 	const tz = getBrowserTimezone()
 	return `${startLocal.format(formatStart)} – ${endLocal.format(formatEnd)} (${tz})`
 }
+
+export function isSessionUpcoming(startDatetimeStr) {
+	if (!startDatetimeStr) return false
+	return dayjs(startDatetimeStr).isSameOrAfter(dayjs())
+}
+

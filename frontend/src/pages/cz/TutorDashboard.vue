@@ -147,7 +147,7 @@ import { Breadcrumbs, LoadingIndicator, Badge, NumberChart } from 'frappe-ui'
 import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
 import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
 import { Home as HomeIcon } from 'lucide-vue-next'
-import { convertToLocal } from '@/utils/timezone'
+import { convertToLocal, isSessionUpcoming } from '@/utils/timezone'
 
 const dashboardStore = useTutorDashboardStore()
 
@@ -179,15 +179,25 @@ const availableSlotsCount = computed(() => {
 })
 
 const upcomingSessionsCount = computed(() => {
-	return bookings.value.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success').length
+	return bookings.value.filter(s =>
+		(s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success') &&
+		isSessionUpcoming(s.start_datetime)
+	).length
 })
 
 const completedSessionsCount = computed(() => {
-	return bookings.value.filter(s => s.booking_status === 'Completed').length
+	return bookings.value.filter(s =>
+		s.booking_status === 'Completed' ||
+		((s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success') &&
+		!isSessionUpcoming(s.start_datetime))
+	).length
 })
 
 const pendingSessionsCount = computed(() => {
-	return bookings.value.filter(s => s.booking_status === 'Pending Payment').length
+	return bookings.value.filter(s =>
+		s.booking_status === 'Pending Payment' &&
+		isSessionUpcoming(s.start_datetime)
+	).length
 })
 
 const uniqueStudentsCount = computed(() => {

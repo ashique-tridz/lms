@@ -124,7 +124,7 @@ import { Breadcrumbs, LoadingIndicator, Badge, TabButtons } from 'frappe-ui'
 import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
 import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
 import { Video } from 'lucide-vue-next'
-import { convertToLocal } from '@/utils/timezone'
+import { convertToLocal, isSessionUpcoming } from '@/utils/timezone'
 
 const dashboardStore = useTutorDashboardStore()
 
@@ -142,8 +142,15 @@ const breadcrumbs = computed(() => [
 ])
 
 const tabButtons = computed(() => {
-	const upcoming = sessions.value.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success').length
-	const completed = sessions.value.filter(s => s.booking_status === 'Completed').length
+	const upcoming = sessions.value.filter(s =>
+		(s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success') &&
+		isSessionUpcoming(s.start_datetime)
+	).length
+	const completed = sessions.value.filter(s =>
+		s.booking_status === 'Completed' ||
+		((s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success') &&
+		!isSessionUpcoming(s.start_datetime))
+	).length
 	const cancelled = sessions.value.filter(s => s.booking_status === 'Cancelled').length
 	const expired = sessions.value.filter(s => s.booking_status === 'Expired' || s.booking_status === 'Failed' || s.booking_status === 'Pending Payment').length
 
@@ -157,9 +164,16 @@ const tabButtons = computed(() => {
 
 const filteredSessions = computed(() => {
 	if (activeTab.value === 'upcoming') {
-		return sessions.value.filter(s => s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success')
+		return sessions.value.filter(s =>
+			(s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success') &&
+			isSessionUpcoming(s.start_datetime)
+		)
 	} else if (activeTab.value === 'completed') {
-		return sessions.value.filter(s => s.booking_status === 'Completed')
+		return sessions.value.filter(s =>
+			s.booking_status === 'Completed' ||
+			((s.booking_status === 'Confirmed' || s.booking_status === 'Payment Success') &&
+			!isSessionUpcoming(s.start_datetime))
+		)
 	} else if (activeTab.value === 'cancelled') {
 		return sessions.value.filter(s => s.booking_status === 'Cancelled')
 	} else {
