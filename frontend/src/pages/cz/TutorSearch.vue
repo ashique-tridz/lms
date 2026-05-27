@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { Breadcrumbs, LoadingIndicator } from 'frappe-ui'
 import { useTutorStore } from '@/stores/useTutorStore'
 import TutorCard from '@/components/cz/TutorCard.vue'
@@ -52,8 +52,4 @@ const tutors = computed(() => tutorStore.tutorsList.data || [])
 const breadcrumbs = computed(() => [
 	{ label: __('Tutors'), route: { name: 'TutorSearch' } }
 ])
-
-onMounted(() => {
-	tutorStore.tutorsList.submit()
-})
 </script>

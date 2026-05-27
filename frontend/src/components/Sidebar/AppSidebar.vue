@@ -343,22 +343,27 @@ onMounted(() => {
 })
 
 const updateSidebarLinksVisibility = () => {
-	sidebarSettings.reload(
-		{},
-		{
-			onSuccess(data) {
-				Object.keys(data).forEach((key) => {
-					if (!parseInt(data[key])) {
-						sidebarLinks.value.forEach((link) => {
-							link.items = link.items.filter(
-								(item) => item.label.toLowerCase().split(' ').join('_') !== key
-							)
-						})
-					}
-				})
-			},
+	if (sidebarSettings.data) {
+		filterSidebarLinks(sidebarSettings.data)
+	} else {
+		sidebarSettings.fetch().then((data) => {
+			if (data) {
+				filterSidebarLinks(data)
+			}
+		})
+	}
+}
+
+const filterSidebarLinks = (data) => {
+	Object.keys(data).forEach((key) => {
+		if (!parseInt(data[key])) {
+			sidebarLinks.value.forEach((link) => {
+				link.items = link.items.filter(
+					(item) => item.label.toLowerCase().split(' ').join('_') !== key
+				)
+			})
 		}
-	)
+	})
 }
 
 const addKeyboardShortcut = () => {
@@ -656,20 +661,26 @@ const setUpOnboarding = () => {
 	}
 }
 
-watch(userResource, async () => {
-	await userResource.promise
-	if (userResource.data) {
-		isModerator.value = userResource.data.is_moderator
-		isInstructor.value = userResource.data.is_instructor
-		await programs.reload()
-		setUpOnboarding()
-	}
-	updateSidebarLinks()
-})
+watch(
+	() => userResource.data,
+	async (data) => {
+		if (data) {
+			isModerator.value = data.is_moderator
+			isInstructor.value = data.is_instructor
+			await programs.fetch()
+			setUpOnboarding()
+		}
+		updateSidebarLinks()
+	},
+	{ immediate: true }
+)
 
-watch(settingsStore.settings, () => {
-	updateSidebarLinks()
-})
+watch(
+	() => settingsStore.settings.data,
+	() => {
+		updateSidebarLinks()
+	}
+)
 
 const updateSidebarLinks = () => {
 	sidebarLinks.value = getSidebarLinks()

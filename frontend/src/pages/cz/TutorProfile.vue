@@ -534,6 +534,13 @@
 	</div>
 </template>
 
+<script>
+import { ref } from 'vue'
+const cachedSubjects = ref([])
+const cachedBoards = ref([])
+const cachedClasses = ref([])
+</script>
+
 <script setup>
 import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -576,9 +583,9 @@ const loadingOptions = ref(true)
 const saving = ref(false)
 const isCreating = ref(false)
 
-const allSubjects = ref([])
-const allBoards = ref([])
-const allClasses = ref([])
+const allSubjects = cachedSubjects
+const allBoards = cachedBoards
+const allClasses = cachedClasses
 
 const selectedSubjects = ref([])
 const selectedBoards = ref([])

@@ -136,21 +136,26 @@ const addLink = (label, icon, to = '') => {
 const updateSidebarLinks = () => {
 	sidebarLinks.value = getSidebarLinks(true)
 	destructureSidebarLinks()
-	sidebarSettings.reload(
-		{},
-		{
-			onSuccess: async (data) => {
-				filterLinksToShow(data)
-				await addPrograms()
-				if (isModerator.value || isInstructor.value) {
-					addQuizzes()
-					addAssignments()
-					addProgrammingExercises()
-				}
-				addOtherLinks()
-			},
-		}
-	)
+	if (sidebarSettings.data) {
+		processSidebarLinks(sidebarSettings.data)
+	} else {
+		sidebarSettings.fetch().then((data) => {
+			if (data) {
+				processSidebarLinks(data)
+			}
+		})
+	}
+}
+
+const processSidebarLinks = async (data) => {
+	filterLinksToShow(data)
+	await addPrograms()
+	if (isModerator.value || isInstructor.value) {
+		addQuizzes()
+		addAssignments()
+		addProgrammingExercises()
+	}
+	addOtherLinks()
 }
 
 const addQuizzes = () => {
@@ -181,12 +186,11 @@ const addPrograms = async () => {
 }
 
 watch(
-	userResource,
-	async () => {
-		await userResource.promise
-		if (userResource.data) {
-			isModerator.value = userResource.data.is_moderator
-			isInstructor.value = userResource.data.is_instructor
+	() => userResource.data,
+	async (data) => {
+		if (data) {
+			isModerator.value = data.is_moderator
+			isInstructor.value = data.is_instructor
 		}
 		updateSidebarLinks()
 	},

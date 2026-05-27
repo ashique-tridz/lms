@@ -46,9 +46,11 @@ export const useTutorStore = defineStore('tutor-store', () => {
 	watch(
 		filters,
 		() => {
-			slotsList.submit()
+			if (filters.tutor || filters.subject || filters.board || filters.class_name) {
+				slotsList.submit()
+			}
 		},
-		{ deep: true, immediate: true }
+		{ deep: true }
 	)
 
 	return {
