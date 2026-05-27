@@ -10,13 +10,15 @@ export function getBrowserTimezone() {
 	return Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
-/**
- * Convert a backend IST datetime string (YYYY-MM-DD HH:mm:ss) to the user's local timezone.
- * Returns a Day.js object.
- */
 export function convertToLocal(dateTimeStr) {
 	if (!dateTimeStr) return null
-	// Parse the string specifically in Asia/Kolkata timezone, then convert to local browser timezone
+	// If the string contains a timezone offset or 'Z', it is already timezone-aware.
+	// Otherwise, it is a naive datetime string which we assume is in the backend's timezone.
+	const isTimezoneAware =
+		dateTimeStr.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(dateTimeStr)
+	if (isTimezoneAware) {
+		return dayjs(dateTimeStr).local()
+	}
 	return dayjs.tz(dateTimeStr, BACKEND_TIMEZONE).local()
 }
 
