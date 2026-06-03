@@ -32,20 +32,6 @@
 					{{ recommendation.recommendation_reason }}
 				</p>
 			</div>
-
-			<div v-if="recommendation.revision_notes">
-				<span class="font-bold text-[10px] uppercase tracking-wider text-ink-gray-4 block mb-1.5">{{ __('Revision Notes') }}</span>
-				<p class="leading-relaxed whitespace-pre-line bg-surface-gray-2 p-3 border rounded-md text-ink-gray-7 text-xs font-normal">
-					{{ recommendation.revision_notes }}
-				</p>
-			</div>
-
-			<div v-if="recommendation.practice_questions">
-				<span class="font-bold text-[10px] uppercase tracking-wider text-ink-gray-4 block mb-1.5">{{ __('Practice Questions') }}</span>
-				<p class="leading-relaxed whitespace-pre-line bg-surface-gray-2 p-3 border rounded-md text-ink-gray-7 text-xs font-normal">
-					{{ recommendation.practice_questions }}
-				</p>
-			</div>
 		</div>
 
 		<div class="pt-4 border-t">

@@ -408,6 +408,16 @@ const currentTab = ref(null)
 const completedLesson = ref(null)
 let timerInterval = null
 
+const getNormalizedSource = (src) => {
+	if (!src) return ''
+	try {
+		const url = new URL(src, window.location.origin)
+		return url.pathname
+	} catch (e) {
+		return src
+	}
+}
+
 const tabs = ref([])
 
 const props = defineProps({
@@ -425,10 +435,17 @@ const props = defineProps({
 	},
 })
 
+const handleVisibilityChange = () => {
+	if (document.visibilityState === 'hidden') {
+		trackVideoWatchDuration()
+	}
+}
+
 onMounted(() => {
 	startTimer()
 	sidebarStore.isSidebarCollapsed = true
 	document.addEventListener('fullscreenchange', attachFullscreenEvent)
+	document.addEventListener('visibilitychange', handleVisibilityChange)
 	socket.on('update_lesson_progress', (data) => {
 		if (data.course === props.courseName) {
 			lessonProgress.value = data.progress
@@ -450,6 +467,7 @@ const attachFullscreenEvent = () => {
 
 onBeforeUnmount(() => {
 	document.removeEventListener('fullscreenchange', attachFullscreenEvent)
+	document.removeEventListener('visibilitychange', handleVisibilityChange)
 	sidebarStore.isSidebarCollapsed = false
 	trackVideoWatchDuration()
 })
@@ -652,9 +670,15 @@ const getVideoDetails = () => {
 	if (videos.length > 0) {
 		videos.forEach((video) => {
 			if (video.currentTime == video.duration) markProgress()
+			let src = video.src
+			if (!src) {
+				const sourceTag = video.querySelector('source')
+				if (sourceTag) src = sourceTag.src
+			}
 			details.push({
-				source: video.src,
+				source: getNormalizedSource(src),
 				watch_time: video.currentTime,
+				video_duration: video.duration,
 			})
 		})
 	}
@@ -667,8 +691,9 @@ const getPlyrSourceDetails = () => {
 		if (source.currentTime == source.duration) markProgress()
 		let src = cleanYouTubeUrl(source.source)
 		details.push({
-			source: src,
+			source: getNormalizedSource(src),
 			watch_time: source.currentTime,
+			video_duration: source.duration,
 		})
 	})
 	return details
@@ -728,6 +753,21 @@ const attachVideoEndedListeners = () => {
 			video.addEventListener('ended', onVideoEnded)
 			video._lmsEndedAttached = true
 		}
+
+		if (!video._czTrackingAttached) {
+			let lastReportedTime = 0
+			video.addEventListener('timeupdate', () => {
+				const currentTime = video.currentTime
+				if (Math.abs(currentTime - lastReportedTime) >= 10) {
+					lastReportedTime = currentTime
+					trackVideoWatchDuration()
+				}
+			})
+			video.addEventListener('pause', () => {
+				trackVideoWatchDuration()
+			})
+			video._czTrackingAttached = true
+		}
 	})
 
 	plyrSources.value.forEach((plyrSource) => {
@@ -738,6 +778,21 @@ const attachVideoEndedListeners = () => {
 			})
 			plyrSource._lmsEndedAttached = true
 		}
+
+		if (!plyrSource._czTrackingAttached) {
+			let lastReportedTime = 0
+			plyrSource.on('timeupdate', () => {
+				const currentTime = plyrSource.currentTime
+				if (Math.abs(currentTime - lastReportedTime) >= 10) {
+					lastReportedTime = currentTime
+					trackVideoWatchDuration()
+				}
+			})
+			plyrSource.on('pause', () => {
+				trackVideoWatchDuration()
+			})
+			plyrSource._czTrackingAttached = true
+		}
 	})
 }
 
@@ -747,7 +802,7 @@ const updatePlyrVideoTime = (video) => {
 		let isSeeking = false
 
 		plyrSource.on('ready', () => {
-			if (plyrSource.source === video.source) {
+			if (getNormalizedSource(plyrSource.source) === getNormalizedSource(video.source)) {
 				plyrSource.embed.seekTo(video.watch_time, true)
 				plyrSource.play()
 				plyrSource.pause()
@@ -760,7 +815,12 @@ const updateVideoTime = (video) => {
 	const videos = document.querySelectorAll('video')
 	if (videos.length > 0) {
 		videos.forEach((vid) => {
-			if (vid.src === video.source) {
+			let src = vid.src
+			if (!src) {
+				const sourceTag = vid.querySelector('source')
+				if (sourceTag) src = sourceTag.src
+			}
+			if (getNormalizedSource(src) === getNormalizedSource(video.source)) {
 				let watch_time = video.watch_time < vid.duration ? video.watch_time : 0
 				if (vid.readyState >= 1) {
 					vid.currentTime = watch_time

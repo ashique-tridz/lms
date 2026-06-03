@@ -239,6 +239,10 @@
    "role": "Course Creator",
    "share": 1,
    "write": 1
+  },
+  {
+   "read": 1,
+   "role": "LMS Student"
   }
  ],
  "row_format": "Dynamic",
