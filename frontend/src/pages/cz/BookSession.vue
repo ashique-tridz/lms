@@ -74,10 +74,74 @@
 		</LayoutHeader>
 
 		<div class="mx-auto flex min-h-0 w-full flex-1 flex-col p-5 max-w-6xl pb-10">
-			<!-- Title row like "All Batches" -->
+
+			<!-- ── Recommended Tutors For You ───────────────────────────────── -->
+			<div v-if="!hasActiveFilters" class="mb-8">
+				<div class="mb-4 border-b pb-4">
+					<div class="text-xl font-semibold text-ink-gray-9">
+						{{ __('Recommended Tutors For You') }}
+					</div>
+					<p class="text-sm text-ink-gray-5 mt-1">
+						{{ __('Matched based on your learning activity, weak subjects, and availability.') }}
+					</p>
+				</div>
+
+				<!-- Skeleton -->
+				<div
+					v-if="recommendedTutors.loading"
+					class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+				>
+					<div
+						v-for="i in 3"
+						:key="i"
+						class="border rounded-md bg-surface-white p-4 space-y-4 animate-pulse"
+					>
+						<div class="flex justify-between border-b pb-3">
+							<div class="space-y-2">
+								<div class="h-4 w-32 rounded bg-surface-gray-3"></div>
+								<div class="h-3 w-20 rounded bg-surface-gray-2"></div>
+							</div>
+							<div class="h-5 w-10 rounded bg-surface-gray-2"></div>
+						</div>
+						<div class="space-y-1.5">
+							<div class="h-3 w-full rounded bg-surface-gray-2"></div>
+							<div class="h-3 w-4/5 rounded bg-surface-gray-2"></div>
+						</div>
+						<div class="flex gap-1.5 pt-3 border-t">
+							<div class="h-5 w-14 rounded bg-surface-gray-2"></div>
+							<div class="h-5 w-16 rounded bg-surface-gray-3"></div>
+						</div>
+						<div class="flex justify-between pt-3 border-t mt-auto">
+							<div class="h-4 w-20 rounded bg-surface-gray-3"></div>
+							<div class="h-7 w-16 rounded bg-surface-gray-3"></div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Recommended grid -->
+				<div
+					v-else-if="recommendedTutorsList.length"
+					class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+				>
+					<TutorCard
+						v-for="tutor in recommendedTutorsList"
+						:key="tutor.name"
+						:tutor="tutor"
+					/>
+				</div>
+
+				<!-- No recommendations yet -->
+				<p v-else class="text-sm text-ink-gray-5 pb-2">
+					{{ __('No personalised recommendations yet — browse all tutors below.') }}
+				</p>
+			</div>
+
+			<!-- ── All Tutors ────────────────────────────────────────────────── -->
 			<div class="mb-5 border-b pb-4">
 				<div class="text-xl font-semibold text-ink-gray-9">{{ __('All Tutors') }}</div>
-				<p class="text-sm text-ink-gray-5 mt-1">{{ __('Find the best mentors customized for your curriculum and goals.') }}</p>
+				<p class="text-sm text-ink-gray-5 mt-1">
+					{{ __('Find the best mentors customized for your curriculum and goals.') }}
+				</p>
 			</div>
 
 			<!-- Skeleton while loading -->
@@ -200,6 +264,19 @@ watch(
 	{ immediate: true }
 )
 
+// ── Recommended Tutors ────────────────────────────────────────────────────
+// Reuses the existing tutor_matching_service via get_recommended_tutors API.
+// No duplicate logic — the same scoring engine and ranking used by the
+// student_api.get_student_dashboard_summary is called here directly.
+const recommendedTutors = createResource({
+	url: 'smart_learning.api.student_api.get_recommended_tutors',
+	params: { limit: 4 },
+})
+
+const recommendedTutorsList = computed(() =>
+	recommendedTutors.data?.success ? (recommendedTutors.data.data || []) : []
+)
+
 // ── Inline filter state (local, committed on Search click) ─────────────────
 const localFilters = reactive({
 	tutor: filterState.tutor,
@@ -266,6 +343,8 @@ function loadMore() {
 
 onMounted(() => {
 	if (!allTutors.value.length) tutorsList.submit()
+	// Fetch personalised recommendations (guest check handled by backend)
+	recommendedTutors.fetch()
 })
 
 usePageMeta(() => ({ title: __('Book a Tutor') }))

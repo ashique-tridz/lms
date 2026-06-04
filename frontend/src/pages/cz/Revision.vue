@@ -141,6 +141,8 @@
 						</div>
 					</div>
 
+
+
 					<!-- Recently Completed Lessons widget -->
 					<div class="bg-surface-white border rounded-lg p-5 shadow-sm">
 						<h3 class="font-bold text-xs uppercase tracking-wider text-ink-gray-4 border-b pb-2 mb-3">

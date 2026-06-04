@@ -9,7 +9,8 @@ export const useRevisionStore = defineStore('revision-store', () => {
 		recommendations: [],
 		recommended_topics: [],
 		recently_completed: [],
-		weak_subjects: []
+		weak_subjects: [],
+		recommended_tutors: [],
 	})
 
 	const revisionFetcher = createResource({
