@@ -274,7 +274,7 @@ const recommendedTutors = createResource({
 })
 
 const recommendedTutorsList = computed(() =>
-	recommendedTutors.data?.success ? (recommendedTutors.data.data || []) : []
+	recommendedTutors.data?.success ? (recommendedTutors.data.data?.tutors || []) : []
 )
 
 // ── Inline filter state (local, committed on Search click) ─────────────────
