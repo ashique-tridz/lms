@@ -7,7 +7,13 @@ export const useTutorDashboardStore = defineStore('tutor-dashboard-store', () =>
 		auto: false,
 	})
 
+	const sessionCompleter = createResource({
+		url: 'smart_learning.api.booking_api.complete_session',
+		auto: false,
+	})
+
 	return {
 		dashboardData,
+		sessionCompleter,
 	}
 })

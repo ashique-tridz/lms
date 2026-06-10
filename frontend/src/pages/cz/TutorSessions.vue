@@ -86,9 +86,9 @@
 							</div>
 						</div>
 
-						<!-- Action Buttons (Launch meeting) -->
+						<!-- Action Buttons (Launch meeting & Mark Completed) -->
 						<div class="flex justify-end items-center pt-3 border-t mt-4">
-							<div>
+							<div class="flex items-center gap-2">
 								<a
 									v-if="b.booking_status === 'Confirmed' && b.meeting_link"
 									:href="b.meeting_link"
@@ -98,13 +98,21 @@
 									<Video class="w-3.5 h-3.5" />
 									{{ __('Launch Class') }}
 								</a>
-								<span v-else-if="b.booking_status === 'Confirmed'" class="text-xs text-ink-gray-4 italic">
+								<Button
+									v-if="profile && profile.user === user && b.booking_status === 'Confirmed' && isSessionEnded(b.end_datetime) && b.meeting_link"
+									variant="solid"
+									class="text-xs font-semibold"
+									@click="promptCompletion(b)"
+								>
+									{{ __('Mark Completed') }}
+								</Button>
+								<span v-else-if="b.booking_status === 'Confirmed' && !b.meeting_link" class="text-xs text-ink-gray-4 italic">
 									{{ __('Meeting generating...') }}
 								</span>
 								<span v-else-if="b.booking_status === 'Completed'" class="text-xs text-green-600 font-medium italic">
 									{{ __('Class concluded') }}
 								</span>
-								<span v-else class="text-xs text-ink-gray-4 italic">—</span>
+								<span v-else-if="b.booking_status === 'Confirmed' && !isSessionEnded(b.end_datetime)" class="text-xs text-ink-gray-4 italic">—</span>
 							</div>
 						</div>
 					</div>
@@ -115,24 +123,88 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Complete Session Confirmation Dialog -->
+		<Dialog
+			v-model="showCompleteDialog"
+			:options="{
+				title: __('Complete Session'),
+				size: 'md',
+			}"
+		>
+			<template #body-content>
+				<p class="text-sm text-ink-gray-7 leading-relaxed">
+					{{ __('Are you sure you want to mark this session as completed?') }}
+					<br />
+					<span class="text-red-500 font-semibold mt-1 block">{{ __('This action cannot be undone.') }}</span>
+				</p>
+			</template>
+			<template #actions>
+				<div class="flex gap-2 justify-end">
+					<Button
+						variant="minimal"
+						@click="showCompleteDialog = false"
+					>
+						{{ __('Cancel') }}
+					</Button>
+					<Button
+						variant="solid"
+						:loading="dashboardStore.sessionCompleter.loading"
+						@click="confirmCompletion"
+					>
+						{{ __('Confirm') }}
+					</Button>
+				</div>
+			</template>
+		</Dialog>
 	</div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { Breadcrumbs, LoadingIndicator, Badge, TabButtons } from 'frappe-ui'
+import { Breadcrumbs, LoadingIndicator, Badge, TabButtons, Button, Dialog, toast } from 'frappe-ui'
 import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
+import { sessionStore } from '@/stores/session'
 import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
 import { Video } from 'lucide-vue-next'
-import { convertToLocal, isSessionUpcoming } from '@/utils/timezone'
+import { convertToLocal, isSessionUpcoming, isSessionEnded } from '@/utils/timezone'
 
 const dashboardStore = useTutorDashboardStore()
+const { user } = sessionStore()
 
 const activeTab = ref('upcoming')
+const showCompleteDialog = ref(false)
+const selectedBookingForCompletion = ref(null)
 
 onMounted(async () => {
 	await dashboardStore.dashboardData.submit()
 })
+
+function promptCompletion(booking) {
+	selectedBookingForCompletion.value = booking
+	showCompleteDialog.value = true
+}
+
+async function confirmCompletion() {
+	if (!selectedBookingForCompletion.value) return
+	const bookingName = selectedBookingForCompletion.value.name
+	try {
+		await dashboardStore.sessionCompleter.submit({ booking_name: bookingName })
+		
+		// In-place local state update of booking_status to 'Completed'
+		const found = sessions.value.find(s => s.name === bookingName)
+		if (found) {
+			found.booking_status = 'Completed'
+		}
+		
+		toast.success(__('Session marked as completed successfully.'))
+	} catch (err) {
+		toast.error(err.messages?.[0] || err.message || __('Failed to complete session.'))
+	} finally {
+		showCompleteDialog.value = false
+		selectedBookingForCompletion.value = null
+	}
+}
 
 const profile = computed(() => dashboardStore.dashboardData.data?.profile)
 const sessions = computed(() => dashboardStore.dashboardData.data?.sessions || [])

@@ -52,3 +52,8 @@ export function isSessionUpcoming(startDatetimeStr) {
 	return dayjs(startDatetimeStr).isSameOrAfter(dayjs())
 }
 
+export function isSessionEnded(endDatetimeStr) {
+	if (!endDatetimeStr) return false
+	return dayjs(endDatetimeStr).isBefore(dayjs())
+}
+
