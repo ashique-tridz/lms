@@ -652,6 +652,12 @@ const articles = ref([
 	},
 ])
 
+const updateSidebarLinks = () => {
+	sidebarLinks.value = getSidebarLinks()
+	updateSidebarLinksVisibility()
+	updateUnreadCount()
+}
+
 const setUpOnboarding = () => {
 	if (userResource.data?.is_system_manager) {
 		onboardingDetails = useOnboarding('learning')
@@ -681,12 +687,6 @@ watch(
 		updateSidebarLinks()
 	}
 )
-
-const updateSidebarLinks = () => {
-	sidebarLinks.value = getSidebarLinks()
-	updateSidebarLinksVisibility()
-	updateUnreadCount()
-}
 
 const redirectToWebsite = () => {
 	window.open('https://frappe.io/learning', '_blank')

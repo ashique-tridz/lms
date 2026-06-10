@@ -544,7 +544,7 @@ const cachedClasses = ref([])
 <script setup>
 import { computed, inject, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Breadcrumbs, LoadingIndicator, Button, Badge, TabButtons, Dialog, call, toast } from 'frappe-ui'
+import { Breadcrumbs, LoadingIndicator, Button, Badge, TabButtons, Dialog, call, toast as frappeToast } from 'frappe-ui'
 import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
 import { getTimezones } from '@/utils'
 import AvailabilityForm from '@/components/cz/AvailabilityForm.vue'
@@ -681,7 +681,7 @@ async function loadFormOptions() {
 
 function addQualification() {
 	if (!newQual.qualification || !newQual.institution || !newQual.year_of_passing) {
-		toast({ title: __('Please fill in qualification, institution and year of passing.'), variant: 'warning' })
+		frappeToast.warning(__('Please fill in qualification, institution and year of passing.'))
 		return
 	}
 	qualifications.value.push({
@@ -706,7 +706,7 @@ function removeQualification(index) {
 
 async function saveProfile() {
 	if (!qualifications.value.length) {
-		toast({ title: __('At least one qualification is required.'), variant: 'warning' })
+		frappeToast.warning(__('At least one qualification is required.'))
 		return
 	}
 	saving.value = true
@@ -724,15 +724,15 @@ async function saveProfile() {
 			active: form.active ? 1 : 0,
 		})
 		if (res && res.success) {
-			toast({ title: res.message, variant: 'success' })
+			frappeToast.success(res.message)
 			isCreating.value = false
 			await dashboardStore.dashboardData.submit()
 		} else {
-			toast({ title: res.error || __('Failed to save profile.'), variant: 'error' })
+			frappeToast.error(res.error || __('Failed to save profile.'))
 		}
 	} catch (e) {
 		console.error('Failed to save profile:', e)
-		toast({ title: __('An error occurred while saving.'), variant: 'error' })
+		frappeToast.error(__('An error occurred while saving.'))
 	} finally {
 		saving.value = false
 	}
@@ -805,11 +805,11 @@ async function handleSave(formData) {
 			await call('frappe.client.submit', { doc: newDoc })
 		}
 		showModal.value = false
-		toast({ title: __('Rule saved successfully.'), variant: 'success' })
+		frappeToast.success(__('Rule saved successfully.'))
 		await dashboardStore.dashboardData.submit()
 	} catch (e) {
 		console.error('Save rule failed:', e)
-		toast({ title: e.message || __('Failed to save rule.'), variant: 'error' })
+		frappeToast.error(e.message || __('Failed to save rule.'))
 	} finally {
 		savingRule.value = false
 	}
@@ -819,11 +819,11 @@ async function deleteRule(name) {
 	if (!confirm(__('Are you sure you want to delete this draft rule?'))) return
 	try {
 		await call('smart_learning.api.tutor_api.delete_availability_rule', { rule_name: name })
-		toast({ title: __('Rule deleted successfully.'), variant: 'success' })
+		frappeToast.success(__('Rule deleted successfully.'))
 		await dashboardStore.dashboardData.submit()
 	} catch (e) {
 		console.error('Failed to delete rule:', e)
-		toast({ title: e.message || __('Failed to delete rule.'), variant: 'error' })
+		frappeToast.error(e.message || __('Failed to delete rule.'))
 	}
 }
 </script>

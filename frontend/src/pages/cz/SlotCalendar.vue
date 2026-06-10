@@ -505,13 +505,13 @@ async function triggerRegenerate() {
 		await call('smart_learning.services.slot_generation_service.regenerate_future_slots', {
 			tutor_profile: profile.value.name,
 		})
-		toast({ title: __('Slot regeneration triggered. Slots will update shortly.'), variant: 'success' })
+		toast.success(__('Slot regeneration triggered. Slots will update shortly.'))
 		setTimeout(async () => {
 			await dashboardStore.dashboardData.submit()
 		}, 1000)
 	} catch (e) {
 		console.error('Slot regeneration failed:', e)
-		toast({ title: __('Slot regeneration failed.'), variant: 'error' })
+		toast.error(__('Slot regeneration failed.'))
 	} finally {
 		regenerating.value = false
 	}
@@ -525,11 +525,11 @@ async function deleteSlot(name) {
 			doctype: 'Tutor Availability Slot',
 			name,
 		})
-		toast({ title: __('Slot removed.'), variant: 'success' })
+		toast.success(__('Slot removed.'))
 		await dashboardStore.dashboardData.submit()
 	} catch (e) {
 		console.error('Failed to delete slot:', e)
-		toast({ title: __('Failed to delete slot.'), variant: 'error' })
+		toast.error(__('Failed to delete slot.'))
 	}
 }
 
