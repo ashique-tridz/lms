@@ -21,15 +21,18 @@
 					<div class="space-y-3 flex-1">
 						<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white backdrop-blur-sm">
 							<Sparkles class="h-3.5 w-3.5 text-white" />
-							{{ __('Continue Learning') }}
+							{{ Math.round(dashboardData.data.continue_learning.progress) >= 100 ? __('Course Completed!') : __('Continue Learning') }}
 						</span>
 						<div>
 							<h3 class="text-2xl font-bold tracking-tight text-white sm:text-3xl">
 								{{ dashboardData.data.continue_learning.course_title }}
 							</h3>
-							<p class="mt-2 text-indigo-100 text-sm font-medium flex items-center gap-2">
+							<p v-if="Math.round(dashboardData.data.continue_learning.progress) < 100" class="mt-2 text-indigo-100 text-sm font-medium flex items-center gap-2">
 								<span class="text-white font-semibold">{{ __('Next Lesson:') }}</span>
 								{{ dashboardData.data.continue_learning.lesson_title }}
+							</p>
+							<p v-else class="mt-2 text-indigo-100 text-sm font-medium flex items-center gap-2">
+								<span class="text-white font-semibold">{{ __('Congratulations! You have completed this course.') }}</span>
 							</p>
 						</div>
 						
@@ -47,8 +50,9 @@
 
 					<div class="flex items-center">
 						<button @click="resumeLesson" class="resume-button inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl shadow-md active:scale-95 transition-all duration-150">
-							<Play class="h-5 w-5 fill-current" />
-							{{ __('Resume Lesson') }}
+							<Play v-if="Math.round(dashboardData.data.continue_learning.progress) < 100" class="h-5 w-5 fill-current" />
+							<CheckCircle v-else class="h-5 w-5" />
+							{{ Math.round(dashboardData.data.continue_learning.progress) >= 100 ? __('View Course') : __('Resume Lesson') }}
 						</button>
 					</div>
 				</div>
@@ -252,7 +256,6 @@ const analyticsStats = computed(() => {
 		{
 			label: 'Avg Quiz Score',
 			value: analytics.average_quiz_score || 0,
-			suffix: '%',
 			icon: TrendingUp,
 			iconClass: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30 p-1 rounded-lg',
 		},
