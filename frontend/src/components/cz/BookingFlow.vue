@@ -18,12 +18,7 @@
 					{{ __('Hourly Rate') }}
 				</span>
 				<span class="text-lg font-bold text-ink-gray-9">
-					<template v-if="tutor.hourly_rate">
-						{{ tutor.hourly_rate }} {{ currency }}
-					</template>
-					<span v-else class="text-ink-gray-5 text-sm font-normal">
-						{{ __('Price on Request') }}
-					</span>
+					{{ TEST_BOOKING_AMOUNT }} {{ currency }}
 				</span>
 			</div>
 		</div>
@@ -72,7 +67,7 @@
 				</p>
 				<p class="text-xs text-blue-800">
 					<span class="font-semibold text-blue-700 mr-1 uppercase">{{ __('Price') }}:</span>
-					{{ tutor.hourly_rate || TEST_BOOKING_AMOUNT }} {{ currency }}
+					{{ TEST_BOOKING_AMOUNT }} {{ currency }}
 				</p>
 			</div>
 

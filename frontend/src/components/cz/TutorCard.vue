@@ -91,13 +91,8 @@
 			<!-- Footer: price + book button -->
 			<div class="flex items-center justify-between mt-4 pt-4 border-t">
 				<div class="text-sm font-semibold text-ink-gray-9">
-					<template v-if="tutor.hourly_rate">
-						{{ tutor.hourly_rate }} {{ currency }}
-						<span class="text-xs font-normal text-ink-gray-5">/ hr</span>
-					</template>
-					<span v-else class="text-ink-gray-5 font-normal text-xs">
-						{{ __('Price on Request') }}
-					</span>
+					{{ 500 }} {{ currency }}
+					<span class="text-xs font-normal text-ink-gray-5">/ hr</span>
 				</div>
 				<router-link :to="{ name: 'BookSession', query: { tutor: tutor.name } }">
 					<Button variant="solid" size="sm">

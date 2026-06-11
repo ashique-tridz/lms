@@ -40,12 +40,23 @@
 						<h2 class="text-xl font-semibold text-ink-gray-9">{{ form.tutor_name || __('Tutor Profile') }}</h2>
 						<p class="text-sm text-ink-gray-5 mt-1">{{ __('Manage your tutoring profile details visible to students.') }}</p>
 					</div>
-					<Badge
-						v-if="profile"
-						:label="profile.verification_status"
-						:theme="profile.verification_status === 'Verified' ? 'green' : 'gray'"
-						size="md"
-					/>
+					<div class="flex items-center gap-3">
+						<Button
+							v-if="profile && profile.verification_status === 'Not Verified'"
+							@click="submitForReview"
+							:loading="submittingForReview"
+							variant="solid"
+							class="text-xs font-semibold"
+						>
+							{{ __('Submit for Review') }}
+						</Button>
+						<Badge
+							v-if="profile"
+							:label="profile.verification_status"
+							:theme="profile.verification_status === 'Verified' ? 'green' : 'gray'"
+							size="md"
+						/>
+					</div>
 				</div>
 
 				<!-- Lock Notice -->
@@ -107,18 +118,6 @@
 									min="0"
 									required
 									placeholder="e.g. 5"
-									class="w-full text-sm border border-outline-gray-2 rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-								/>
-							</div>
-							<div>
-								<label class="block text-xs font-semibold text-ink-gray-5 uppercase tracking-wider mb-1.5">{{ __('Hourly Rate (INR)') }}</label>
-								<input
-									v-model.number="form.hourly_rate"
-									:disabled="isReadOnly"
-									type="number"
-									min="1"
-									required
-									placeholder="e.g. 500"
 									class="w-full text-sm border border-outline-gray-2 rounded-md p-2.5 bg-surface-white text-ink-gray-9 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
 								/>
 							</div>
@@ -597,6 +596,25 @@ const breadcrumbs = computed(() => [
 const loadingOptions = ref(true)
 const saving = ref(false)
 const isCreating = ref(false)
+const submittingForReview = ref(false)
+
+async function submitForReview() {
+	submittingForReview.value = true
+	try {
+		const res = await call('smart_learning.api.tutor_api.submit_tutor_profile_for_review')
+		if (res && res.success) {
+			frappeToast.success(res.message || __('Profile submitted for review.'))
+			await dashboardStore.dashboardData.submit()
+		} else {
+			frappeToast.error(res.error || __('Failed to submit profile for review.'))
+		}
+	} catch (e) {
+		console.error('Submit for review failed:', e)
+		frappeToast.error(e.message || __('An error occurred.'))
+	} finally {
+		submittingForReview.value = false
+	}
+}
 
 const allSubjects = cachedSubjects
 const allBoards = cachedBoards
@@ -631,7 +649,6 @@ const form = reactive({
 	tutor_name: '',
 	bio: '',
 	years_of_experience: 1,
-	hourly_rate: 500,
 	timezone: getDetectedTimezone(),
 	active: true,
 })
@@ -664,7 +681,6 @@ function syncForm() {
 			tutor_name: profile.value.tutor_name,
 			bio: profile.value.bio || '',
 			years_of_experience: profile.value.years_of_experience,
-			hourly_rate: profile.value.hourly_rate || 500,
 			timezone: profile.value.timezone || defaultTz,
 			active: profile.value.active === undefined ? true : !!profile.value.active,
 		})
@@ -744,7 +760,6 @@ async function saveProfile() {
 			tutor_name: form.tutor_name,
 			bio: form.bio,
 			years_of_experience: form.years_of_experience,
-			hourly_rate: form.hourly_rate,
 			timezone: form.timezone,
 			subjects: JSON.stringify(selectedSubjects.value),
 			boards: JSON.stringify(selectedBoards.value),
