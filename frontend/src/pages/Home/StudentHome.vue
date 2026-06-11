@@ -12,30 +12,29 @@
 
 		<div v-else class="space-y-8">
 			<!-- 1. Continue Learning Banner -->
-			<div v-if="dashboardData.data?.continue_learning?.has_course" class="continue-learning-banner relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-xl hover:shadow-2xl transition-all duration-300">
+			<div v-if="dashboardData.data?.continue_learning?.has_course"
+				class="continue-learning-banner relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white shadow-xl hover:shadow-2xl transition-all duration-300">
 				<!-- Background pattern -->
 				<div class="absolute right-0 top-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-white/10 blur-xl"></div>
 				<div class="absolute bottom-0 left-1/3 -mb-6 h-48 w-48 rounded-full bg-white/10 blur-2xl"></div>
 
 				<div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
 					<div class="space-y-3 flex-1">
-						<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white backdrop-blur-sm">
+						<span
+							class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white backdrop-blur-sm">
 							<Sparkles class="h-3.5 w-3.5 text-white" />
-							{{ Math.round(dashboardData.data.continue_learning.progress) >= 100 ? __('Course Completed!') : __('Continue Learning') }}
+							{{ __('Continue Learning') }}
 						</span>
 						<div>
 							<h3 class="text-2xl font-bold tracking-tight text-white sm:text-3xl">
 								{{ dashboardData.data.continue_learning.course_title }}
 							</h3>
-							<p v-if="Math.round(dashboardData.data.continue_learning.progress) < 100" class="mt-2 text-indigo-100 text-sm font-medium flex items-center gap-2">
+							<p class="mt-2 text-indigo-100 text-sm font-medium flex items-center gap-2">
 								<span class="text-white font-semibold">{{ __('Next Lesson:') }}</span>
 								{{ dashboardData.data.continue_learning.lesson_title }}
 							</p>
-							<p v-else class="mt-2 text-indigo-100 text-sm font-medium flex items-center gap-2">
-								<span class="text-white font-semibold">{{ __('Congratulations! You have completed this course.') }}</span>
-							</p>
 						</div>
-						
+
 						<!-- Progress bar -->
 						<div class="mt-4 max-w-md">
 							<div class="flex items-center justify-between text-xs text-indigo-100 font-semibold mb-1">
@@ -43,16 +42,17 @@
 								<span>{{ Math.round(dashboardData.data.continue_learning.progress) }}%</span>
 							</div>
 							<div class="h-2 w-full bg-white/25 rounded-full overflow-hidden">
-								<div class="h-full bg-emerald-400 rounded-full transition-all duration-500" :style="{ width: `${dashboardData.data.continue_learning.progress}%` }"></div>
+								<div class="h-full bg-emerald-400 rounded-full transition-all duration-500"
+									:style="{ width: `${dashboardData.data.continue_learning.progress}%` }"></div>
 							</div>
 						</div>
 					</div>
 
 					<div class="flex items-center">
-						<button @click="resumeLesson" class="resume-button inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl shadow-md active:scale-95 transition-all duration-150">
-							<Play v-if="Math.round(dashboardData.data.continue_learning.progress) < 100" class="h-5 w-5 fill-current" />
-							<CheckCircle v-else class="h-5 w-5" />
-							{{ Math.round(dashboardData.data.continue_learning.progress) >= 100 ? __('View Course') : __('Resume Lesson') }}
+						<button @click="resumeLesson"
+							class="resume-button inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl shadow-md active:scale-95 transition-all duration-150">
+							<Play class="h-5 w-5 fill-current" />
+							{{ __('Resume Lesson') }}
 						</button>
 					</div>
 				</div>
@@ -60,9 +60,11 @@
 
 			<!-- 2. Learning Analytics Stats Grid -->
 			<div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-				<div v-for="stat in analyticsStats" :key="stat.label" class="bg-surface-white p-5 rounded-2xl border border-outline-gray-2 shadow-sm hover:shadow-md transition-shadow">
+				<div v-for="stat in analyticsStats" :key="stat.label"
+					class="bg-surface-white p-5 rounded-2xl border border-outline-gray-2 shadow-sm hover:shadow-md transition-shadow">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-wider">{{ stat.label }}</span>
+						<span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-wider">{{ stat.label
+							}}</span>
 						<component :is="stat.icon" class="h-5 w-5" :class="stat.iconClass" />
 					</div>
 					<div class="mt-3 flex items-baseline gap-1.5">
@@ -80,25 +82,33 @@
 					<div class="bg-surface-white rounded-2xl border border-outline-gray-2 shadow-sm p-6 space-y-4">
 						<div class="flex items-center justify-between border-b border-outline-gray-2 pb-4">
 							<div class="flex items-center gap-2">
-								<div class="p-2 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+								<div
+									class="p-2 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
 									<Calendar class="h-5 w-5" />
 								</div>
 								<h3 class="text-lg font-bold text-ink-gray-9">{{ __('Upcoming Sessions') }}</h3>
 							</div>
-							<span class="text-xs font-semibold text-ink-gray-5 bg-surface-gray-2 px-2.5 py-1 rounded-full">
+							<span
+								class="text-xs font-semibold text-ink-gray-5 bg-surface-gray-2 px-2.5 py-1 rounded-full">
 								{{ dashboardData.data?.upcoming_sessions?.length || 0 }} {{ __('Scheduled') }}
 							</span>
 						</div>
 
 						<div v-if="dashboardData.data?.upcoming_sessions?.length" class="space-y-4">
-							<div v-for="session in dashboardData.data.upcoming_sessions" :key="session.booking_id" class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-outline-gray-2 rounded-xl hover:bg-surface-gray-2 transition-colors gap-4">
+							<div v-for="session in dashboardData.data.upcoming_sessions" :key="session.booking_id"
+								class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-outline-gray-2 rounded-xl hover:bg-surface-gray-2 transition-colors gap-4">
 								<div class="space-y-2">
 									<div class="flex items-center gap-2 flex-wrap">
 										<span class="font-bold text-ink-gray-9">{{ session.tutor_name }}</span>
-										<span class="px-2 py-0.5 text-xs font-medium bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 rounded-full">{{ session.subject }}</span>
-										<span v-if="session.class_name" class="px-2 py-0.5 text-xs font-medium bg-surface-gray-3 text-ink-gray-6 rounded-full">{{ session.class_name }}</span>
+										<span
+											class="px-2 py-0.5 text-xs font-medium bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 rounded-full">{{
+												session.subject }}</span>
+										<span v-if="session.class_name"
+											class="px-2 py-0.5 text-xs font-medium bg-surface-gray-3 text-ink-gray-6 rounded-full">{{
+												session.class_name }}</span>
 									</div>
-									<div class="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-xs text-ink-gray-5 font-medium">
+									<div
+										class="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-xs text-ink-gray-5 font-medium">
 										<span class="flex items-center gap-1.5">
 											<Calendar class="h-3.5 w-3.5 text-ink-gray-4" />
 											{{ formatDate(session.start_datetime) }}
@@ -109,13 +119,15 @@
 										</span>
 									</div>
 								</div>
-								
+
 								<div class="w-full sm:w-auto">
-									<a v-if="isSessionActive(session)" :href="session.meeting_link" target="_blank" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm shadow-indigo-100 dark:shadow-none">
+									<a v-if="isSessionActive(session)" :href="session.meeting_link" target="_blank"
+										class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm shadow-indigo-100 dark:shadow-none">
 										<Video class="h-4 w-4" />
 										{{ __('Join Session') }}
 									</a>
-									<span v-else class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-surface-gray-2 text-ink-gray-5 border border-outline-gray-2 font-medium rounded-lg text-sm cursor-not-allowed">
+									<span v-else
+										class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-surface-gray-2 text-ink-gray-5 border border-outline-gray-2 font-medium rounded-lg text-sm cursor-not-allowed">
 										<Clock class="h-4 w-4" />
 										{{ __('Scheduled') }}
 									</span>
@@ -123,10 +135,12 @@
 							</div>
 						</div>
 
-						<div v-else class="text-center py-10 text-ink-gray-4 border border-dashed rounded-xl border-outline-gray-3">
+						<div v-else
+							class="text-center py-10 text-ink-gray-4 border border-dashed rounded-xl border-outline-gray-3">
 							<div class="text-3xl mb-2">📅</div>
 							<p class="text-sm font-medium">{{ __('No upcoming live sessions.') }}</p>
-							<router-link :to="{ name: 'TutorSearch' || 'BookSession' }" class="mt-3 inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline">
+							<router-link :to="{ name: 'TutorSearch' || 'BookSession' }"
+								class="mt-3 inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline">
 								{{ __('Book a tutoring session') }}
 								<ChevronRight class="h-3 w-3" />
 							</router-link>
@@ -137,22 +151,26 @@
 					<div class="bg-surface-white rounded-2xl border border-outline-gray-2 shadow-sm p-6 space-y-4">
 						<div class="flex items-center justify-between border-b border-outline-gray-2 pb-4">
 							<div class="flex items-center gap-2">
-								<div class="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-xl">
+								<div
+									class="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-xl">
 									<RefreshCw class="h-5 w-5" />
 								</div>
 								<h3 class="text-lg font-bold text-ink-gray-9">{{ __('Revision Recommendations') }}</h3>
 							</div>
-							<router-link :to="{ name: 'Revision' }" class="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-0.5">
+							<router-link :to="{ name: 'Revision' }"
+								class="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-0.5">
 								{{ __('View all') }}
 								<ChevronRight class="h-3 w-3" />
 							</router-link>
 						</div>
 
 						<div v-if="dashboardData.data?.revision_suggestions?.length" class="space-y-4">
-							<RevisionCard v-for="rec in dashboardData.data.revision_suggestions" :key="rec.name" :recommendation="rec" />
+							<RevisionCard v-for="rec in dashboardData.data.revision_suggestions" :key="rec.name"
+								:recommendation="rec" />
 						</div>
 
-						<div v-else class="text-center py-10 text-ink-gray-4 border border-dashed rounded-xl border-outline-gray-3">
+						<div v-else
+							class="text-center py-10 text-ink-gray-4 border border-dashed rounded-xl border-outline-gray-3">
 							<div class="text-3xl mb-2">🎉</div>
 							<p class="text-sm font-medium">{{ __('All revisions completed! Outstanding job.') }}</p>
 						</div>
@@ -165,18 +183,22 @@
 					<div class="bg-surface-white rounded-2xl border border-outline-gray-2 shadow-sm p-6 space-y-6">
 						<div class="flex items-center justify-between border-b border-outline-gray-2 pb-4">
 							<div class="flex items-center gap-2">
-								<div class="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+								<div
+									class="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
 									<Activity class="h-5 w-5" />
 								</div>
 								<h3 class="text-lg font-bold text-ink-gray-9">{{ __('Recent Activity') }}</h3>
 							</div>
 						</div>
 
-						<div v-if="dashboardData.data?.recent_activity?.length" class="relative pl-6 border-l-2 border-outline-gray-2 space-y-6">
+						<div v-if="dashboardData.data?.recent_activity?.length"
+							class="relative pl-6 border-l-2 border-outline-gray-2 space-y-6">
 							<div v-for="(act, idx) in dashboardData.data.recent_activity" :key="idx" class="relative">
 								<!-- Icon dot -->
-								<div class="absolute -left-[31px] top-0.5 bg-surface-white p-1 rounded-full border-2" :class="getActivityIconBorder(act.type)">
-									<component :is="getActivityIcon(act.type)" class="h-3 w-3" :class="getActivityIconClass(act.type)" />
+								<div class="absolute -left-[31px] top-0.5 bg-surface-white p-1 rounded-full border-2"
+									:class="getActivityIconBorder(act.type)">
+									<component :is="getActivityIcon(act.type)" class="h-3 w-3"
+										:class="getActivityIconClass(act.type)" />
 								</div>
 								<div class="space-y-1">
 									<p class="text-sm font-semibold text-ink-gray-9 leading-tight">
@@ -256,6 +278,7 @@ const analyticsStats = computed(() => {
 		{
 			label: 'Avg Quiz Score',
 			value: analytics.average_quiz_score || 0,
+			suffix: '%',
 			icon: TrendingUp,
 			iconClass: 'text-amber-500 bg-amber-50 dark:bg-amber-950/30 p-1 rounded-lg',
 		},
@@ -357,6 +380,7 @@ function getActivityIconBorder(type: string) {
 	background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%) !important;
 	color: #ffffff !important;
 }
+
 :global([data-theme="dark"]) .continue-learning-banner {
 	background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%) !important;
 	border: 1px solid #334155 !important;
@@ -366,14 +390,17 @@ function getActivityIconBorder(type: string) {
 	background-color: #ffffff !important;
 	color: #4f46e5 !important;
 }
+
 .resume-button:hover {
 	background-color: #f3f4f6 !important;
 }
+
 :global([data-theme="dark"]) .resume-button {
 	background-color: #1e293b !important;
 	color: #f8fafc !important;
 	border: 1px solid #475569 !important;
 }
+
 :global([data-theme="dark"]) .resume-button:hover {
 	background-color: #334155 !important;
 }
@@ -382,6 +409,7 @@ function getActivityIconBorder(type: string) {
 	background-color: #fef3c7;
 	border-color: #fde68a;
 }
+
 :global([data-theme="dark"]) .activity-badge-quiz {
 	background-color: rgba(217, 119, 6, 0.15) !important;
 	border-color: rgba(217, 119, 6, 0.3) !important;
@@ -391,6 +419,7 @@ function getActivityIconBorder(type: string) {
 	background-color: #e0e7ff;
 	border-color: #c7d2fe;
 }
+
 :global([data-theme="dark"]) .activity-badge-session {
 	background-color: rgba(79, 70, 229, 0.15) !important;
 	border-color: rgba(79, 70, 229, 0.3) !important;
@@ -400,6 +429,7 @@ function getActivityIconBorder(type: string) {
 	background-color: #f3e8ff;
 	border-color: #e9d5ff;
 }
+
 :global([data-theme="dark"]) .activity-badge-revision {
 	background-color: rgba(147, 51, 234, 0.15) !important;
 	border-color: rgba(147, 51, 234, 0.3) !important;
@@ -409,6 +439,7 @@ function getActivityIconBorder(type: string) {
 	background-color: #eff6ff;
 	border-color: #dbeafe;
 }
+
 :global([data-theme="dark"]) .activity-badge-lesson {
 	background-color: rgba(37, 99, 235, 0.15) !important;
 	border-color: rgba(37, 99, 235, 0.3) !important;
