@@ -347,6 +347,18 @@
 
 				<!-- TAB: Availability Rules -->
 				<div v-if="activeTab === 'availability'" class="space-y-6 max-w-5xl">
+					<!-- Warning banner if tutor profile is not verified -->
+					<div
+						v-if="profile && profile.verification_status !== 'Verified'"
+						class="flex items-start gap-2.5 p-4 bg-surface-amber-1 border border-outline-amber-2 rounded-md text-sm text-ink-amber-3"
+					>
+						<AlertCircle class="w-4 h-4 mt-0.5 shrink-0" />
+						<div>
+							<span class="font-semibold">{{ __('Tutor Profile not verified') }}</span>. 
+							{{ __('To create the availability rule, Tutor Profile must be verified.') }}
+						</div>
+					</div>
+
 					<div class="flex justify-between items-center">
 						<div>
 							<h3 class="text-base font-semibold text-ink-gray-9">{{ __('Weekly Availability Rules') }}</h3>
@@ -356,6 +368,7 @@
 							@click="openAddModal"
 							variant="solid"
 							class="text-xs font-semibold"
+							:disabled="profile && profile.verification_status !== 'Verified'"
 						>
 							<template #prefix>
 								<Plus class="w-3.5 h-3.5" />
@@ -441,6 +454,7 @@
 							@click="openAddModal"
 							variant="solid"
 							class="text-xs font-semibold mx-auto"
+							:disabled="profile && profile.verification_status !== 'Verified'"
 						>
 							{{ __('Create Rule') }}
 						</Button>
@@ -525,6 +539,7 @@
 			<template #body-content>
 				<AvailabilityForm
 					:rule="editingRule"
+					:profileTimezone="form.timezone"
 					:loading="savingRule"
 					@save="handleSave"
 					@cancel="showModal = false"
@@ -549,7 +564,7 @@ import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
 import { getTimezones } from '@/utils'
 import AvailabilityForm from '@/components/cz/AvailabilityForm.vue'
 import LayoutHeader from '@/components/Layouts/LayoutHeader.vue'
-import { User, Lock, Plus } from 'lucide-vue-next'
+import { User, Lock, Plus, AlertCircle } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -602,12 +617,22 @@ const newQual = reactive({
 })
 const timezoneOptions = getTimezones()
 
+function getDetectedTimezone(systemTz) {
+	try {
+		const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+		if (browserTz) return browserTz
+	} catch (e) {
+		console.warn('Failed to detect browser timezone:', e)
+	}
+	return systemTz || 'Asia/Kolkata'
+}
+
 const form = reactive({
 	tutor_name: '',
 	bio: '',
 	years_of_experience: 1,
 	hourly_rate: 500,
-	timezone: 'Asia/Kolkata',
+	timezone: getDetectedTimezone(),
 	active: true,
 })
 
@@ -632,13 +657,15 @@ watch(profile, () => {
 })
 
 function syncForm() {
+	const systemTz = dashboardStore.dashboardData.data?.system_timezone
+	const defaultTz = getDetectedTimezone(systemTz)
 	if (profile.value) {
 		Object.assign(form, {
 			tutor_name: profile.value.tutor_name,
 			bio: profile.value.bio || '',
 			years_of_experience: profile.value.years_of_experience,
 			hourly_rate: profile.value.hourly_rate || 500,
-			timezone: profile.value.timezone || 'Asia/Kolkata',
+			timezone: profile.value.timezone || defaultTz,
 			active: profile.value.active === undefined ? true : !!profile.value.active,
 		})
 		selectedSubjects.value = profile.value.subjects ? profile.value.subjects.map((s) => s.subject) : []
@@ -654,6 +681,8 @@ function syncForm() {
 				maj_opt_subj: q.maj_opt_subj,
 			}))
 			: []
+	} else {
+		form.timezone = defaultTz
 	}
 }
 
@@ -759,48 +788,58 @@ function formatTime(timeStr) {
 }
 
 function openAddModal() {
+	if (profile.value?.verification_status !== 'Verified') {
+		frappeToast.warning(__('Tutor Profile not verified. To create the availability rule, Tutor Profile must be verified.'))
+		return
+	}
 	editingRule.value = null
 	showModal.value = true
 }
 
 function openEditModal(rule) {
-	const weekdayStr = Array.isArray(rule.weekday) && rule.weekday.length
-		? rule.weekday[0].weekday
-		: ''
+	if (profile.value?.verification_status !== 'Verified') {
+		frappeToast.warning(__('Tutor Profile not verified. To create the availability rule, Tutor Profile must be verified.'))
+		return
+	}
+	const weekdaysList = Array.isArray(rule.weekday)
+		? rule.weekday.map((w) => w.weekday)
+		: []
 	editingRule.value = {
 		...rule,
-		weekday: weekdayStr
+		weekdays: weekdaysList
 	}
 	showModal.value = true
 }
 
 async function handleSave(formData) {
+	if (profile.value?.verification_status !== 'Verified') {
+		frappeToast.warning(__('Tutor Profile not verified. To create the availability rule, Tutor Profile must be verified.'))
+		return
+	}
 	savingRule.value = true
 	try {
-		const weekdayRows = [{ weekday: formData.weekday }]
+		const weekdayRows = formData.weekdays.map((day) => ({ weekday: day }))
+		
+		const doc = {
+			doctype: 'Tutor Availability Rule',
+			tutor: profile.value.name,
+			workflow_state: 'Approved',
+			start_time: formData.start_time,
+			end_time: formData.end_time,
+			effective_from: formData.effective_from,
+			effective_to: formData.effective_to || null,
+			active: formData.active,
+			weekday: weekdayRows
+		}
 
 		if (editingRule.value && editingRule.value.name) {
 			await call('frappe.client.cancel', {
 				doctype: 'Tutor Availability Rule',
 				name: editingRule.value.name,
 			})
-			const doc = {
-				doctype: 'Tutor Availability Rule',
-				tutor: profile.value.name,
-				workflow_state: 'Approved',
-				...formData,
-				weekday: weekdayRows
-			}
 			const newDoc = await call('frappe.client.insert', { doc })
 			await call('frappe.client.submit', { doc: newDoc })
 		} else {
-			const doc = {
-				doctype: 'Tutor Availability Rule',
-				tutor: profile.value.name,
-				workflow_state: 'Approved',
-				...formData,
-				weekday: weekdayRows
-			}
 			const newDoc = await call('frappe.client.insert', { doc })
 			await call('frappe.client.submit', { doc: newDoc })
 		}
