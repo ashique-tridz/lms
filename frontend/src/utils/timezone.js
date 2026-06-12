@@ -49,11 +49,13 @@ export function formatTimeRangeLocal(
 
 export function isSessionUpcoming(startDatetimeStr) {
 	if (!startDatetimeStr) return false
-	return dayjs(startDatetimeStr).isSameOrAfter(dayjs())
+	const localObj = convertToLocal(startDatetimeStr)
+	return localObj ? localObj.isSameOrAfter(dayjs()) : false
 }
 
 export function isSessionEnded(endDatetimeStr) {
 	if (!endDatetimeStr) return false
-	return dayjs(endDatetimeStr).isBefore(dayjs())
+	const localObj = convertToLocal(endDatetimeStr)
+	return localObj ? localObj.isBefore(dayjs()) : false
 }
 

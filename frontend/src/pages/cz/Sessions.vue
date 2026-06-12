@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { Breadcrumbs, Button, TabButtons, LoadingIndicator } from 'frappe-ui'
 import { useSessionStore } from '@/stores/useSessionStore'
 import { useBookingStore } from '@/stores/useBookingStore'
@@ -66,12 +66,65 @@ import { isSessionUpcoming } from '@/utils/timezone'
 
 const sessionStore = useSessionStore()
 const bookingStore = useBookingStore()
+const socket = inject('$socket')
 
 const checkoutDetails = ref(null)
 const activeTab = ref('upcoming')
 
+let pollInterval = null
+
+function startPollingIfNeeded() {
+	if (pollInterval) return
+
+	const hasPendingMeeting = sessionStore.sessions.some(
+		s => s.booking_status === 'Confirmed' && !s.meeting_link
+	)
+
+	if (hasPendingMeeting) {
+		pollInterval = setInterval(async () => {
+			await sessionStore.fetchHistory()
+			
+			const stillPending = sessionStore.sessions.some(
+				s => s.booking_status === 'Confirmed' && !s.meeting_link
+			)
+			if (!stillPending) {
+				stopPolling()
+			}
+		}, 5000)
+	}
+}
+
+function stopPolling() {
+	if (pollInterval) {
+		clearInterval(pollInterval)
+		pollInterval = null
+	}
+}
+
+watch(() => sessionStore.sessions, () => {
+	startPollingIfNeeded()
+}, { deep: true })
+
 onMounted(() => {
 	sessionStore.fetchHistory()
+	
+	if (socket) {
+		socket.on('booking_meeting_updated', (data) => {
+			if (data && data.booking) {
+				const found = sessionStore.sessions.find(s => s.name === data.booking)
+				if (found) {
+					found.meeting_link = data.meeting_link
+				}
+			}
+		})
+	}
+})
+
+onBeforeUnmount(() => {
+	stopPolling()
+	if (socket) {
+		socket.off('booking_meeting_updated')
+	}
 })
 
 const breadcrumbs = computed(() => [

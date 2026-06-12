@@ -99,7 +99,7 @@
 									{{ __('Launch Class') }}
 								</a>
 								<Button
-									v-if="profile && profile.user === user && b.booking_status === 'Confirmed' && isSessionEnded(b.end_datetime) && b.meeting_link"
+									v-if="profile && b.booking_status === 'Confirmed' && isSessionEnded(b.end_datetime) && b.meeting_link"
 									variant="solid"
 									class="text-xs font-semibold"
 									@click="promptCompletion(b)"
@@ -161,7 +161,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { Breadcrumbs, LoadingIndicator, Badge, TabButtons, Button, Dialog, toast } from 'frappe-ui'
 import { useTutorDashboardStore } from '@/stores/useTutorDashboardStore'
 import { sessionStore } from '@/stores/session'
@@ -171,13 +171,67 @@ import { convertToLocal, isSessionUpcoming, isSessionEnded } from '@/utils/timez
 
 const dashboardStore = useTutorDashboardStore()
 const { user } = sessionStore()
+const socket = inject('$socket')
 
 const activeTab = ref('upcoming')
 const showCompleteDialog = ref(false)
 const selectedBookingForCompletion = ref(null)
 
+let pollInterval = null
+
+function startPollingIfNeeded() {
+	if (pollInterval) return
+
+	const currentSessions = dashboardStore.dashboardData.data?.sessions || []
+	const hasPendingMeeting = currentSessions.some(
+		s => s.booking_status === 'Confirmed' && !s.meeting_link
+	)
+
+	if (hasPendingMeeting) {
+		pollInterval = setInterval(async () => {
+			await dashboardStore.dashboardData.submit()
+			
+			const stillPending = (dashboardStore.dashboardData.data?.sessions || []).some(
+				s => s.booking_status === 'Confirmed' && !s.meeting_link
+			)
+			if (!stillPending) {
+				stopPolling()
+			}
+		}, 5000)
+	}
+}
+
+function stopPolling() {
+	if (pollInterval) {
+		clearInterval(pollInterval)
+		pollInterval = null
+	}
+}
+
+watch(() => dashboardStore.dashboardData.data?.sessions, () => {
+	startPollingIfNeeded()
+}, { deep: true })
+
 onMounted(async () => {
 	await dashboardStore.dashboardData.submit()
+	
+	if (socket) {
+		socket.on('booking_meeting_updated', (data) => {
+			if (data && data.booking && dashboardStore.dashboardData.data?.sessions) {
+				const found = dashboardStore.dashboardData.data.sessions.find(s => s.name === data.booking)
+				if (found) {
+					found.meeting_link = data.meeting_link
+				}
+			}
+		})
+	}
+})
+
+onBeforeUnmount(() => {
+	stopPolling()
+	if (socket) {
+		socket.off('booking_meeting_updated')
+	}
 })
 
 function promptCompletion(booking) {
