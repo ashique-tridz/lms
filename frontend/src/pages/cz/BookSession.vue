@@ -234,7 +234,9 @@ import {
 	classesList,
 } from '@/resources/bookTutor'
 
+import { sessionStore } from '@/stores/session'
 const route = useRoute()
+const session = sessionStore()
 
 // ── Breadcrumbs ────────────────────────────────────────────────────────────
 const tutorName = computed(() => route.query.tutor)
@@ -336,6 +338,16 @@ watch(
 	}
 )
 
+watch(
+	() => session.isLoggedIn,
+	(loggedIn) => {
+		if (loggedIn) {
+			recommendedTutors.fetch()
+		}
+	},
+	{ immediate: true }
+)
+
 function loadMore() {
 	filterState.page += 1
 	tutorsList.submit()
@@ -343,8 +355,6 @@ function loadMore() {
 
 onMounted(() => {
 	if (!allTutors.value.length) tutorsList.submit()
-	// Fetch personalised recommendations (guest check handled by backend)
-	recommendedTutors.fetch()
 })
 
 usePageMeta(() => ({ title: __('Book a Tutor') }))

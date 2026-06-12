@@ -91,7 +91,7 @@
 			<!-- Footer: price + book button -->
 			<div class="flex items-center justify-between mt-4 pt-4 border-t">
 				<div class="text-sm font-semibold text-ink-gray-9">
-					{{ 500 }} {{ currency }}
+					{{ TEST_BOOKING_AMOUNT }} {{ currency }}
 					<span class="text-xs font-normal text-ink-gray-5">/ hr</span>
 				</div>
 				<router-link :to="{ name: 'BookSession', query: { tutor: tutor.name } }">
@@ -108,6 +108,8 @@
 import { computed } from 'vue'
 import { Badge, Button } from 'frappe-ui'
 import { systemSettings } from '@/resources/bookTutor'
+
+const TEST_BOOKING_AMOUNT = 500
 
 const props = defineProps({
 	tutor: {

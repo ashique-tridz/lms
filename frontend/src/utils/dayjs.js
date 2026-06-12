@@ -7,6 +7,7 @@ import isSameOrBefore from 'dayjs/esm/plugin/isSameOrBefore'
 import isSameOrAfter from 'dayjs/esm/plugin/isSameOrAfter'
 import utc from 'dayjs/esm/plugin/utc'
 import timezone from 'dayjs/esm/plugin/timezone'
+import isoWeek from 'dayjs/esm/plugin/isoWeek'
 import 'dayjs/esm/locale/ar'
 import 'dayjs/esm/locale/he'
 import 'dayjs/esm/locale/fa'
@@ -20,6 +21,7 @@ dayjs.extend(isSameOrBefore)
 dayjs.extend(isSameOrAfter)
 dayjs.extend(utc)
 dayjs.extend(timezone)
+dayjs.extend(isoWeek)
 
 if (
 	document.documentElement.dir === 'rtl' &&
