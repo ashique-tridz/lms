@@ -107,7 +107,7 @@
 									>
 										<td class="p-4 font-medium text-ink-gray-9">{{ b.student }}</td>
 										<td class="p-4 text-ink-gray-7">{{ b.subject || __('N/A') }}</td>
-										<td class="p-4 text-ink-gray-7">{{ formatTime(b.locked_at || b.confirmed_at) }}</td>
+										<td class="p-4 text-ink-gray-7">{{ formatTime(b.start_datetime) }}</td>
 										<td class="p-4">
 											<Badge
 												:label="b.booking_status"
